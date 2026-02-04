@@ -3,6 +3,10 @@
 
 #include <oechem.h>
 
+#include <cctype>
+#include <set>
+#include <string>
+
 namespace OESel {
 
 namespace {
@@ -22,6 +26,73 @@ namespace {
         }
         return g_tagged_tag;
     }
+
+    // Residue name sets for classification
+    const std::set<std::string> WATER_RESNAMES = {
+        "HOH", "WAT", "H2O", "DOD", "TIP", "TIP3", "SPC"
+    };
+
+    const std::set<std::string> AMINO_ACIDS = {
+        "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
+        "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL",
+        // Common protonation states and modifications
+        "HID", "HIE", "HIP", "CYX", "ASH", "GLH",
+        // Terminal residues
+        "ACE", "NME"
+    };
+
+    const std::set<std::string> NUCLEOTIDES = {
+        "A", "G", "C", "U", "T",
+        "DA", "DG", "DC", "DT", "DU",
+        "ADE", "GUA", "CYT", "URA", "THY",
+        // RNA bases
+        "RA", "RG", "RC", "RU"
+    };
+
+    const std::set<std::string> COFACTORS = {
+        "NAD", "NAP", "NAI", "NDP",  // NAD variants
+        "FAD", "FMN", "FNR",          // Flavin cofactors
+        "HEM", "HEC", "HEA",          // Heme variants
+        "ATP", "ADP", "AMP",          // Adenine nucleotides
+        "GTP", "GDP", "GMP",          // Guanine nucleotides
+        "COA", "ACO",                  // Coenzyme A
+        "PLP",                         // Pyridoxal phosphate
+        "BTN",                         // Biotin
+        "B12", "CBY",                  // Vitamin B12
+        "SF4", "FES", "F3S",           // Iron-sulfur clusters
+        "MG", "CA", "ZN", "FE", "MN", "CU"  // Metal ions (common cofactors)
+    };
+
+    const std::set<std::string> SOLVENTS = {
+        "DMS", "DMF", "ACN", "MET", "EOH", "IPA", "GOL", "PEG", "EDO"
+    };
+
+    std::string TrimWhitespace(const std::string& str) {
+        std::string result = str;
+        // Trim trailing whitespace
+        while (!result.empty() && std::isspace(static_cast<unsigned char>(result.back()))) {
+            result.pop_back();
+        }
+        // Trim leading whitespace
+        size_t start = 0;
+        while (start < result.size() && std::isspace(static_cast<unsigned char>(result[start]))) {
+            ++start;
+        }
+        return result.substr(start);
+    }
+
+    ComponentFlag ClassifyResidue(const std::string& resname) {
+        std::string name = TrimWhitespace(resname);
+
+        if (WATER_RESNAMES.count(name)) return ComponentFlag::Water;
+        if (AMINO_ACIDS.count(name)) return ComponentFlag::Protein;
+        if (NUCLEOTIDES.count(name)) return ComponentFlag::Nucleic;
+        if (COFACTORS.count(name)) return ComponentFlag::Cofactor;
+        if (SOLVENTS.count(name)) return ComponentFlag::Solvent;
+
+        // Default to ligand for unknown small molecules
+        return ComponentFlag::Ligand;
+    }
 }
 
 void Tagger::TagMolecule(OEChem::OEMolBase& mol) {
@@ -29,8 +100,14 @@ void Tagger::TagMolecule(OEChem::OEMolBase& mol) {
         return;  // Already tagged
     }
 
-    // TODO: Implement component classification using OESplitMolComplex
-    // For now, mark as tagged without classification
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&(*atom));
+        std::string resname = res.GetName();
+
+        ComponentFlag flag = ClassifyResidue(resname);
+        atom->SetData<unsigned int>(GetComponentTag(), static_cast<uint32_t>(flag));
+    }
+
     mol.SetData<unsigned int>(GetTaggedTag(), 1);
 }
 

@@ -3,6 +3,9 @@
 #include "oeselect/Error.h"
 #include "oeselect/predicates/NamePredicate.h"
 #include "oeselect/predicates/LogicalPredicates.h"
+#include "oeselect/predicates/AtomPropertyPredicates.h"
+#include "oeselect/predicates/ComponentPredicates.h"
+#include "oeselect/predicates/AtomTypePredicates.h"
 
 #include <tao/pegtl.hpp>
 #include <stack>
@@ -28,19 +31,93 @@ struct value : pegtl::sor<quoted_string, glob_pattern> {};
 
 // Keywords - case insensitive
 struct kw_name : TAO_PEGTL_ISTRING("name") {};
+struct kw_resn : TAO_PEGTL_ISTRING("resn") {};
+struct kw_resi : TAO_PEGTL_ISTRING("resi") {};
+struct kw_chain : TAO_PEGTL_ISTRING("chain") {};
+struct kw_elem : TAO_PEGTL_ISTRING("elem") {};
+struct kw_index : TAO_PEGTL_ISTRING("index") {};
 struct kw_and : TAO_PEGTL_ISTRING("and") {};
 struct kw_or : TAO_PEGTL_ISTRING("or") {};
 struct kw_not : TAO_PEGTL_ISTRING("not") {};
 struct kw_xor : TAO_PEGTL_ISTRING("xor") {};
+
+// Component keywords (no value required)
+struct kw_protein : TAO_PEGTL_ISTRING("protein") {};
+struct kw_ligand : TAO_PEGTL_ISTRING("ligand") {};
+struct kw_water : TAO_PEGTL_ISTRING("water") {};
+struct kw_solvent : TAO_PEGTL_ISTRING("solvent") {};
+struct kw_organic : TAO_PEGTL_ISTRING("organic") {};
+struct kw_backbone : pegtl::sor<TAO_PEGTL_ISTRING("backbone"), TAO_PEGTL_ISTRING("bb")> {};
+struct kw_sidechain : pegtl::sor<TAO_PEGTL_ISTRING("sidechain"), TAO_PEGTL_ISTRING("sc")> {};
+struct kw_metal : pegtl::sor<TAO_PEGTL_ISTRING("metals"), TAO_PEGTL_ISTRING("metal")> {};
+
+// Atom type keywords
+// Note: Order matters - longer matches must come first
+// polar_hydrogen before hydrogen, nonpolar_hydrogen before hydrogen
+struct kw_heavy : TAO_PEGTL_ISTRING("heavy") {};
+struct kw_polar_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("polar_hydrogen"), TAO_PEGTL_ISTRING("polarh")> {};
+struct kw_nonpolar_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("nonpolar_hydrogen"), TAO_PEGTL_ISTRING("apolarh")> {};
+struct kw_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("hydrogen"), TAO_PEGTL_ISTRING("h")> {};
+
+// Numbers and ranges
+struct number : pegtl::plus<pegtl::digit> {};
+struct range : pegtl::seq<number, pegtl::one<'-'>, number> {};
+
+// Comparison operators
+struct comp_ge : pegtl::string<'>', '='> {};
+struct comp_le : pegtl::string<'<', '='> {};
+struct comp_gt : pegtl::one<'>'> {};
+struct comp_lt : pegtl::one<'<'> {};
+struct comp_op : pegtl::sor<comp_ge, comp_le, comp_gt, comp_lt> {};
+
+// Element symbol (1-2 letters, case insensitive)
+struct element_symbol : pegtl::seq<pegtl::alpha, pegtl::opt<pegtl::alpha>> {};
+
+// Chain ID (single character)
+struct chain_id : pegtl::alpha {};
 
 // Forward declarations for recursive grammar
 struct expression;
 
 // Specifiers (leaf nodes)
 struct name_spec : pegtl::seq<kw_name, ws_required, value> {};
+struct resn_spec : pegtl::seq<kw_resn, ws_required, value> {};
+struct resi_comp_spec : pegtl::seq<kw_resi, ws_required, comp_op, ws, number> {};
+struct resi_range_spec : pegtl::seq<kw_resi, ws_required, range> {};
+struct resi_exact_spec : pegtl::seq<kw_resi, ws_required, number> {};
+struct resi_spec : pegtl::sor<resi_comp_spec, resi_range_spec, resi_exact_spec> {};
+struct chain_spec : pegtl::seq<kw_chain, ws_required, chain_id> {};
+struct elem_spec : pegtl::seq<kw_elem, ws_required, element_symbol> {};
+struct index_range_spec : pegtl::seq<kw_index, ws_required, range> {};
+struct index_exact_spec : pegtl::seq<kw_index, ws_required, number> {};
+struct index_spec : pegtl::sor<index_range_spec, index_exact_spec> {};
 
-// For now, just name - use sor for future expansion
-struct specifier : pegtl::sor<name_spec> {};
+// Component specifiers (keyword-only, no value)
+struct protein_spec : kw_protein {};
+struct ligand_spec : kw_ligand {};
+struct water_spec : kw_water {};
+struct solvent_spec : kw_solvent {};
+struct organic_spec : kw_organic {};
+struct backbone_spec : kw_backbone {};
+struct sidechain_spec : kw_sidechain {};
+struct metal_spec : kw_metal {};
+
+// Atom type specifiers
+struct heavy_spec : kw_heavy {};
+struct polar_hydrogen_spec : kw_polar_hydrogen {};
+struct nonpolar_hydrogen_spec : kw_nonpolar_hydrogen {};
+struct hydrogen_spec : kw_hydrogen {};
+
+// All specifiers
+// IMPORTANT: Order matters - longer/more specific matches must come first
+// polar_hydrogen_spec and nonpolar_hydrogen_spec must come before hydrogen_spec
+// because hydrogen_spec's "h" alias could match the start of other keywords
+struct specifier : pegtl::sor<
+    name_spec, resn_spec, resi_spec, chain_spec, elem_spec, index_spec,
+    protein_spec, ligand_spec, water_spec, solvent_spec, organic_spec,
+    backbone_spec, sidechain_spec, metal_spec,
+    heavy_spec, polar_hydrogen_spec, nonpolar_hydrogen_spec, hydrogen_spec
+> {};
 
 // Markers for parentheses (for action tracking)
 struct open_paren : pegtl::one<'('> {};
@@ -109,6 +186,11 @@ struct ParserState {
     std::stack<Predicate::Ptr> operands;
     std::string current_value;
 
+    // For resi/index parsing
+    int first_number = 0;
+    int second_number = 0;
+    ResiPredicate::Op comp_op = ResiPredicate::Op::Eq;
+
     // Stack of operator contexts - one per nesting level (parentheses)
     std::stack<OpContext> contexts;
 
@@ -173,6 +255,238 @@ struct Action<Grammar::name_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         state.pushOperand(std::make_shared<NamePredicate>(state.current_value));
+    }
+};
+
+// Resn specifier - uses same value as name
+template<>
+struct Action<Grammar::resn_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<ResnPredicate>(state.current_value));
+    }
+};
+
+// Number action - capture for resi/index
+template<>
+struct Action<Grammar::number> {
+    template<typename ActionInput>
+    static void apply(const ActionInput& in, ParserState& state) {
+        // Shift first_number to second_number if we already have a first
+        state.second_number = state.first_number;
+        state.first_number = std::stoi(in.string());
+    }
+};
+
+// Comparison operator actions
+template<>
+struct Action<Grammar::comp_ge> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.comp_op = ResiPredicate::Op::Ge;
+    }
+};
+
+template<>
+struct Action<Grammar::comp_le> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.comp_op = ResiPredicate::Op::Le;
+    }
+};
+
+template<>
+struct Action<Grammar::comp_gt> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.comp_op = ResiPredicate::Op::Gt;
+    }
+};
+
+template<>
+struct Action<Grammar::comp_lt> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.comp_op = ResiPredicate::Op::Lt;
+    }
+};
+
+// Resi specifiers
+template<>
+struct Action<Grammar::resi_comp_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<ResiPredicate>(state.first_number, state.comp_op));
+        state.comp_op = ResiPredicate::Op::Eq;  // Reset
+    }
+};
+
+template<>
+struct Action<Grammar::resi_range_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // After parsing range, second_number has start, first_number has end
+        state.pushOperand(std::make_shared<ResiPredicate>(state.second_number, state.first_number));
+    }
+};
+
+template<>
+struct Action<Grammar::resi_exact_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<ResiPredicate>(state.first_number, ResiPredicate::Op::Eq));
+    }
+};
+
+// Chain specifier
+template<>
+struct Action<Grammar::chain_id> {
+    template<typename ActionInput>
+    static void apply(const ActionInput& in, ParserState& state) {
+        state.current_value = in.string();
+    }
+};
+
+template<>
+struct Action<Grammar::chain_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<ChainPredicate>(state.current_value));
+    }
+};
+
+// Element specifier
+template<>
+struct Action<Grammar::element_symbol> {
+    template<typename ActionInput>
+    static void apply(const ActionInput& in, ParserState& state) {
+        state.current_value = in.string();
+    }
+};
+
+template<>
+struct Action<Grammar::elem_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<ElemPredicate>(state.current_value));
+    }
+};
+
+// Index specifiers
+template<>
+struct Action<Grammar::index_range_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // After parsing range, second_number has start, first_number has end
+        state.pushOperand(std::make_shared<IndexPredicate>(
+            static_cast<unsigned int>(state.second_number),
+            static_cast<unsigned int>(state.first_number)));
+    }
+};
+
+template<>
+struct Action<Grammar::index_exact_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<IndexPredicate>(static_cast<unsigned int>(state.first_number)));
+    }
+};
+
+// Component specifiers
+template<>
+struct Action<Grammar::protein_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<ProteinPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::ligand_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<LigandPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::water_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<WaterPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::solvent_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<SolventPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::organic_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<OrganicPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::backbone_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<BackbonePredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::sidechain_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<SidechainPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::metal_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<MetalPredicate>());
+    }
+};
+
+// Atom type specifiers
+template<>
+struct Action<Grammar::heavy_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<HeavyPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::hydrogen_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<HydrogenPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::polar_hydrogen_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<PolarHydrogenPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::nonpolar_hydrogen_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<NonpolarHydrogenPredicate>());
     }
 };
 

@@ -250,3 +250,1271 @@ TEST_F(SelectionTest, OperatorPrecedence) {
     }
     EXPECT_EQ(count, 3);  // X1, X2, Y1
 }
+
+// ============================================================================
+// Atom Property Predicate Tests (Task 8)
+// ============================================================================
+
+class AtomPropertyTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Create a small protein-like structure with residue info
+        // Using a simple dipeptide structure: Ala-Gly
+        OEChem::OESmilesToMol(mol_, "CC(N)C(=O)NCC(=O)O");  // Simplified peptide
+
+        // Set up residue information manually
+        int atomIdx = 0;
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+
+            // First 5 atoms are ALA (residue 1, chain A), rest are GLY (residue 2, chain A)
+            if (atomIdx < 5) {
+                res.SetName("ALA");
+                res.SetResidueNumber(1);
+                res.SetChainID('A');
+            } else {
+                res.SetName("GLY");
+                res.SetResidueNumber(2);
+                res.SetChainID('A');
+            }
+            OEChem::OEAtomSetResidue(&(*atom), res);
+            atomIdx++;
+        }
+    }
+
+    OEChem::OEGraphMol mol_;
+};
+
+TEST_F(AtomPropertyTest, ResnPredicateExact) {
+    OESelect sel(mol_, "resn ALA");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 5);  // 5 atoms in ALA residue
+}
+
+TEST_F(AtomPropertyTest, ResnPredicateWildcard) {
+    OESelect sel(mol_, "resn GL*");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    // GLY should match GL* pattern
+    int total = static_cast<int>(mol_.NumAtoms());
+    EXPECT_EQ(count, total - 5);  // All atoms except the 5 in ALA
+}
+
+TEST_F(AtomPropertyTest, ResiPredicateExact) {
+    OESelect sel(mol_, "resi 1");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 5);  // 5 atoms in residue 1 (ALA)
+}
+
+TEST_F(AtomPropertyTest, ResiPredicateRange) {
+    OESelect sel(mol_, "resi 1-2");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    // Both residues 1 and 2 should be selected
+    EXPECT_EQ(count, static_cast<int>(mol_.NumAtoms()));
+}
+
+TEST_F(AtomPropertyTest, ResiPredicateGreaterThan) {
+    OESelect sel(mol_, "resi > 1");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    // Only residue 2 (GLY) should match
+    int total = static_cast<int>(mol_.NumAtoms());
+    EXPECT_EQ(count, total - 5);
+}
+
+TEST_F(AtomPropertyTest, ResiPredicateLessThanOrEqual) {
+    OESelect sel(mol_, "resi <= 1");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    // Only residue 1 (ALA) should match
+    EXPECT_EQ(count, 5);
+}
+
+TEST_F(AtomPropertyTest, ChainPredicate) {
+    OESelect sel(mol_, "chain A");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    // All atoms are in chain A
+    EXPECT_EQ(count, static_cast<int>(mol_.NumAtoms()));
+}
+
+TEST_F(AtomPropertyTest, ChainPredicateNoMatch) {
+    OESelect sel(mol_, "chain B");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    // No atoms are in chain B
+    EXPECT_EQ(count, 0);
+}
+
+// Use the aspirin molecule for element tests (has C, O, and H atoms)
+class ElemTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        OEChem::OESmilesToMol(mol_, "CC(=O)OC1=CC=CC=C1C(=O)O");  // Aspirin
+    }
+
+    OEChem::OEGraphMol mol_;
+};
+
+TEST_F(ElemTest, ElemPredicateCarbon) {
+    OESelect sel(mol_, "elem C");
+
+    int count = 0;
+    int expected_carbons = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (atom->GetAtomicNum() == 6) {
+            expected_carbons++;
+        }
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, expected_carbons);
+    EXPECT_GT(count, 0);  // Should have some carbon atoms
+}
+
+TEST_F(ElemTest, ElemPredicateOxygen) {
+    OESelect sel(mol_, "elem O");
+
+    int count = 0;
+    int expected_oxygens = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (atom->GetAtomicNum() == 8) {
+            expected_oxygens++;
+        }
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, expected_oxygens);
+    EXPECT_GT(count, 0);  // Should have some oxygen atoms
+}
+
+TEST_F(ElemTest, ElemPredicateCaseInsensitive) {
+    OESelect sel_lower(mol_, "elem c");
+    OESelect sel_upper(mol_, "elem C");
+
+    int count_lower = 0;
+    int count_upper = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel_lower(*atom)) count_lower++;
+        if (sel_upper(*atom)) count_upper++;
+    }
+    EXPECT_EQ(count_lower, count_upper);
+    EXPECT_GT(count_lower, 0);
+}
+
+TEST_F(SelectionTest, IndexPredicateExact) {
+    OESelect sel(mol_, "index 0");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 1);  // Only one atom with index 0
+}
+
+TEST_F(SelectionTest, IndexPredicateRange) {
+    OESelect sel(mol_, "index 0-4");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 5);  // Atoms 0, 1, 2, 3, 4
+}
+
+TEST_F(SelectionTest, IndexPredicateLargeValue) {
+    // Test with an index that doesn't exist
+    OESelect sel(mol_, "index 9999");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 0);  // No atom with index 9999
+}
+
+// Combined tests with logical operators
+TEST_F(AtomPropertyTest, ResnAndResiCombined) {
+    OESelect sel(mol_, "resn ALA and resi 1");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 5);  // All ALA atoms are in residue 1
+}
+
+TEST_F(ElemTest, ElemOrOperator) {
+    OESelect sel(mol_, "elem C or elem O");
+
+    int count = 0;
+    int expected = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        int anum = atom->GetAtomicNum();
+        if (anum == 6 || anum == 8) {
+            expected++;
+        }
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, expected);
+}
+
+// ============================================================================
+// Tagger Tests (Task 9)
+// ============================================================================
+
+TEST(TaggerTest, TagMoleculeWater) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "O");  // Water
+
+    // Set residue name to HOH for all atoms
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("HOH");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    Tagger::TagMolecule(mol);
+    EXPECT_TRUE(Tagger::IsTagged(mol));
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Water));
+    }
+}
+
+TEST(TaggerTest, TagMoleculeWaterVariants) {
+    // Test various water residue names
+    std::vector<std::string> water_names = {"HOH", "WAT", "H2O", "DOD", "TIP", "TIP3"};
+
+    for (const auto& water_name : water_names) {
+        OEChem::OEGraphMol mol;
+        OEChem::OESmilesToMol(mol, "O");
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+            res.SetName(water_name.c_str());
+            OEChem::OEAtomSetResidue(&(*atom), res);
+        }
+
+        Tagger::TagMolecule(mol);
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Water))
+                << "Failed for water residue name: " << water_name;
+        }
+    }
+}
+
+TEST(TaggerTest, TagMoleculeProtein) {
+    OEChem::OEGraphMol mol;
+    // Create a simple alanine-like structure
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        res.SetResidueNumber(1);
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    Tagger::TagMolecule(mol);
+    EXPECT_TRUE(Tagger::IsTagged(mol));
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Protein));
+    }
+}
+
+TEST(TaggerTest, TagMoleculeMultipleAminoAcids) {
+    // Test multiple amino acid types
+    std::vector<std::string> amino_acids = {"ALA", "GLY", "VAL", "LEU", "ILE", "PRO",
+                                             "PHE", "TYR", "TRP", "SER", "THR", "CYS",
+                                             "MET", "ASN", "GLN", "ASP", "GLU", "LYS",
+                                             "ARG", "HIS"};
+
+    for (const auto& aa_name : amino_acids) {
+        OEChem::OEGraphMol mol;
+        OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+            res.SetName(aa_name.c_str());
+            OEChem::OEAtomSetResidue(&(*atom), res);
+        }
+
+        Tagger::TagMolecule(mol);
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Protein))
+                << "Failed for amino acid: " << aa_name;
+        }
+    }
+}
+
+TEST(TaggerTest, TagMoleculeNucleic) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "c1nc2c(n1)nc[nH]2");  // Purine base
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("DA");  // Deoxyadenosine
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    Tagger::TagMolecule(mol);
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Nucleic));
+    }
+}
+
+TEST(TaggerTest, TagMoleculeNucleotideVariants) {
+    std::vector<std::string> nucleotides = {"A", "G", "C", "T", "U", "DA", "DG", "DC", "DT"};
+
+    for (const auto& nuc_name : nucleotides) {
+        OEChem::OEGraphMol mol;
+        OEChem::OESmilesToMol(mol, "c1nc2c(n1)nc[nH]2");
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+            res.SetName(nuc_name.c_str());
+            OEChem::OEAtomSetResidue(&(*atom), res);
+        }
+
+        Tagger::TagMolecule(mol);
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Nucleic))
+                << "Failed for nucleotide: " << nuc_name;
+        }
+    }
+}
+
+TEST(TaggerTest, TagMoleculeCofactor) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "Nc1ncnc2c1ncn2C1OC(COP([O-])([O-])=O)C(O)C1O");  // AMP-like
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ATP");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    Tagger::TagMolecule(mol);
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Cofactor));
+    }
+}
+
+TEST(TaggerTest, TagMoleculeCofactorVariants) {
+    std::vector<std::string> cofactors = {"NAD", "FAD", "HEM", "ATP", "ADP", "GTP"};
+
+    for (const auto& cof_name : cofactors) {
+        OEChem::OEGraphMol mol;
+        OEChem::OESmilesToMol(mol, "CC");  // Simple molecule
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+            res.SetName(cof_name.c_str());
+            OEChem::OEAtomSetResidue(&(*atom), res);
+        }
+
+        Tagger::TagMolecule(mol);
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Cofactor))
+                << "Failed for cofactor: " << cof_name;
+        }
+    }
+}
+
+TEST(TaggerTest, TagMoleculeLigand) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O");  // Aspirin
+
+    // Set residue name to something unknown (should default to ligand)
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("LIG");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    Tagger::TagMolecule(mol);
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Ligand));
+    }
+}
+
+TEST(TaggerTest, TagMoleculeSolvent) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CS(=O)C");  // DMSO
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("DMS");  // DMSO residue name
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    Tagger::TagMolecule(mol);
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Solvent));
+    }
+}
+
+TEST(TaggerTest, TagMoleculeIdempotent) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "O");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("HOH");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    EXPECT_FALSE(Tagger::IsTagged(mol));
+    Tagger::TagMolecule(mol);
+    EXPECT_TRUE(Tagger::IsTagged(mol));
+
+    // Store original flags
+    std::vector<uint32_t> original_flags;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        original_flags.push_back(Tagger::GetFlags(*atom));
+    }
+
+    // Tag again - should be idempotent
+    Tagger::TagMolecule(mol);
+    EXPECT_TRUE(Tagger::IsTagged(mol));
+
+    // Verify flags are unchanged
+    int idx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_EQ(Tagger::GetFlags(*atom), original_flags[idx]);
+        idx++;
+    }
+}
+
+TEST(TaggerTest, MixedComponentMolecule) {
+    // Create a molecule with mixed components (like a protein-ligand complex)
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O.O.CCO");  // Alanine, water, ethanol
+
+    int atomIdx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        if (atomIdx < 7) {  // First 7 atoms are alanine
+            res.SetName("ALA");
+        } else if (atomIdx < 8) {  // Next atom is water
+            res.SetName("HOH");
+        } else {  // Rest is ethanol (ligand)
+            res.SetName("ETH");
+        }
+        OEChem::OEAtomSetResidue(&(*atom), res);
+        atomIdx++;
+    }
+
+    Tagger::TagMolecule(mol);
+    EXPECT_TRUE(Tagger::IsTagged(mol));
+
+    // Verify each atom has the correct component flag
+    atomIdx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (atomIdx < 7) {
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Protein))
+                << "Atom " << atomIdx << " should be Protein";
+        } else if (atomIdx < 8) {
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Water))
+                << "Atom " << atomIdx << " should be Water";
+        } else {
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Ligand))
+                << "Atom " << atomIdx << " should be Ligand";
+        }
+        atomIdx++;
+    }
+}
+
+TEST(TaggerTest, GetFlagsReturnsZeroForUntaggedAtom) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "C");
+
+    // Don't tag the molecule
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_EQ(Tagger::GetFlags(*atom), 0u);
+    }
+}
+
+TEST(TaggerTest, HasComponentReturnsFalseForUntaggedAtom) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "C");
+
+    // Don't tag the molecule
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_FALSE(Tagger::HasComponent(*atom, ComponentFlag::Protein));
+        EXPECT_FALSE(Tagger::HasComponent(*atom, ComponentFlag::Water));
+        EXPECT_FALSE(Tagger::HasComponent(*atom, ComponentFlag::Ligand));
+    }
+}
+
+TEST(TaggerTest, ProtonationStateVariants) {
+    // Test common protonation state variants of amino acids
+    std::vector<std::string> protonation_variants = {"HID", "HIE", "HIP", "CYX", "ASH", "GLH"};
+
+    for (const auto& res_name : protonation_variants) {
+        OEChem::OEGraphMol mol;
+        OEChem::OESmilesToMol(mol, "CC");
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+            res.SetName(res_name.c_str());
+            OEChem::OEAtomSetResidue(&(*atom), res);
+        }
+
+        Tagger::TagMolecule(mol);
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Protein))
+                << "Failed for protonation variant: " << res_name;
+        }
+    }
+}
+
+// ============================================================================
+// Component Predicate Tests (Task 10)
+// ============================================================================
+
+TEST(ComponentPredicateTest, ProteinPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");  // Alanine
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        res.SetResidueNumber(1);
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel(mol, "protein");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()));
+}
+
+TEST(ComponentPredicateTest, ProteinPredicateMultipleResidues) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)NCC(=O)O");  // Ala-Gly dipeptide
+
+    std::vector<std::string> residues = {"ALA", "GLY", "VAL", "LEU", "ILE"};
+    int atomIdx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName(residues[atomIdx % residues.size()].c_str());
+        OEChem::OEAtomSetResidue(&(*atom), res);
+        atomIdx++;
+    }
+
+    OESelect sel(mol, "protein");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()));
+}
+
+TEST(ComponentPredicateTest, LigandPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O");  // Aspirin
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("LIG");  // Unknown residue name -> ligand
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel(mol, "ligand");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()));
+}
+
+TEST(ComponentPredicateTest, WaterPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "O");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("HOH");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel(mol, "water");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()));
+}
+
+TEST(ComponentPredicateTest, WaterPredicateVariants) {
+    std::vector<std::string> water_names = {"HOH", "WAT", "H2O", "DOD", "TIP"};
+
+    for (const auto& water_name : water_names) {
+        OEChem::OEGraphMol mol;
+        OEChem::OESmilesToMol(mol, "O");
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+            res.SetName(water_name.c_str());
+            OEChem::OEAtomSetResidue(&(*atom), res);
+        }
+
+        OESelect sel(mol, "water");
+        int count = 0;
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            if (sel(*atom)) count++;
+        }
+        EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()))
+            << "Failed for water name: " << water_name;
+    }
+}
+
+TEST(ComponentPredicateTest, SolventPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CS(=O)C");  // DMSO
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("DMS");  // DMSO residue name
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel(mol, "solvent");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()));
+}
+
+TEST(ComponentPredicateTest, SolventPredicateIncludesWater) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "O");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("HOH");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    // Solvent should include water
+    OESelect sel(mol, "solvent");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()));
+}
+
+TEST(ComponentPredicateTest, OrganicPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O");  // Aspirin
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("LIG");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel(mol, "organic");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // All atoms in aspirin should be organic (C-containing)
+    EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()));
+}
+
+TEST(ComponentPredicateTest, OrganicPredicateExcludesProtein) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");  // Alanine
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel(mol, "organic");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Protein atoms should not be organic
+    EXPECT_EQ(count, 0);
+}
+
+TEST(ComponentPredicateTest, BackbonePredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");  // Alanine
+
+    // Set up proper backbone atom names
+    std::vector<std::string> names = {"CB", "CA", "N", "C", "O", "OXT", "HN"};
+    int idx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        res.SetResidueNumber(1);
+        OEChem::OEAtomSetResidue(&(*atom), res);
+        if (idx < static_cast<int>(names.size())) {
+            atom->SetName(names[idx].c_str());
+        }
+        idx++;
+    }
+
+    OESelect sel(mol, "backbone");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+            std::string name = atom->GetName();
+            EXPECT_TRUE(name == "N" || name == "CA" || name == "C" || name == "O")
+                << "Unexpected backbone atom: " << name;
+        }
+    }
+    // Should match N, CA, C, O (4 backbone atoms)
+    EXPECT_EQ(count, 4);
+}
+
+TEST(ComponentPredicateTest, BackbonePredicateAlias) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");
+
+    std::vector<std::string> names = {"CB", "CA", "N", "C", "O"};
+    int idx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+        if (idx < static_cast<int>(names.size())) {
+            atom->SetName(names[idx].c_str());
+        }
+        idx++;
+    }
+
+    // Test "bb" alias
+    OESelect sel_bb(mol, "bb");
+    OESelect sel_backbone(mol, "backbone");
+
+    int count_bb = 0, count_backbone = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel_bb(*atom)) count_bb++;
+        if (sel_backbone(*atom)) count_backbone++;
+    }
+    EXPECT_EQ(count_bb, count_backbone);
+}
+
+TEST(ComponentPredicateTest, SidechainPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");  // Alanine - 6 heavy atoms
+
+    // Assign atom names to match alanine: CB, CA, N, C, O, OXT
+    std::vector<std::string> names = {"CB", "CA", "N", "C", "O", "OXT"};
+    int idx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        res.SetResidueNumber(1);
+        OEChem::OEAtomSetResidue(&(*atom), res);
+        if (idx < static_cast<int>(names.size())) {
+            atom->SetName(names[idx].c_str());
+        }
+        idx++;
+    }
+
+    OESelect sel(mol, "sidechain");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+            std::string name = atom->GetName();
+            // Sidechain should NOT include N, CA, C, O, or OXT
+            EXPECT_TRUE(name != "N" && name != "CA" && name != "C" && name != "O" && name != "OXT")
+                << "Unexpected sidechain atom: " << name;
+        }
+    }
+    // Should match CB (1 sidechain atom)
+    EXPECT_EQ(count, 1);
+}
+
+TEST(ComponentPredicateTest, SidechainPredicateAlias) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");
+
+    std::vector<std::string> names = {"CB", "CA", "N", "C", "O"};
+    int idx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+        if (idx < static_cast<int>(names.size())) {
+            atom->SetName(names[idx].c_str());
+        }
+        idx++;
+    }
+
+    // Test "sc" alias
+    OESelect sel_sc(mol, "sc");
+    OESelect sel_sidechain(mol, "sidechain");
+
+    int count_sc = 0, count_sidechain = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel_sc(*atom)) count_sc++;
+        if (sel_sidechain(*atom)) count_sidechain++;
+    }
+    EXPECT_EQ(count_sc, count_sidechain);
+}
+
+TEST(ComponentPredicateTest, MetalPredicate) {
+    OEChem::OEGraphMol mol;
+    mol.NewAtom(26);  // Fe
+    mol.NewAtom(30);  // Zn
+    mol.NewAtom(6);   // C (not a metal)
+
+    OESelect sel(mol, "metal");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 2);  // Fe and Zn
+}
+
+TEST(ComponentPredicateTest, MetalPredicateAlias) {
+    OEChem::OEGraphMol mol;
+    mol.NewAtom(26);  // Fe
+    mol.NewAtom(30);  // Zn
+
+    // Test "metals" alias
+    OESelect sel_metals(mol, "metals");
+    OESelect sel_metal(mol, "metal");
+
+    int count_metals = 0, count_metal = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel_metals(*atom)) count_metals++;
+        if (sel_metal(*atom)) count_metal++;
+    }
+    EXPECT_EQ(count_metals, count_metal);
+    EXPECT_EQ(count_metals, 2);
+}
+
+TEST(ComponentPredicateTest, MetalPredicateCommonMetals) {
+    // Test various metal elements
+    std::vector<int> metals = {
+        3,   // Li
+        11,  // Na
+        12,  // Mg
+        19,  // K
+        20,  // Ca
+        25,  // Mn
+        26,  // Fe
+        27,  // Co
+        28,  // Ni
+        29,  // Cu
+        30,  // Zn
+        42   // Mo
+    };
+
+    OEChem::OEGraphMol mol;
+    for (int z : metals) {
+        mol.NewAtom(z);
+    }
+
+    OESelect sel(mol, "metal");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, static_cast<int>(metals.size()));
+}
+
+TEST(ComponentPredicateTest, NotProtein) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O.O");  // Alanine (6 atoms) + water (1 atom)
+
+    int atomIdx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        if (atomIdx < 6) {  // First 6 atoms are alanine
+            res.SetName("ALA");
+        } else {  // Water
+            res.SetName("HOH");
+        }
+        OEChem::OEAtomSetResidue(&(*atom), res);
+        atomIdx++;
+    }
+
+    OESelect sel(mol, "not protein");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Only water atom should match "not protein"
+    EXPECT_EQ(count, 1);
+}
+
+TEST(ComponentPredicateTest, ProteinAndBackbone) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");  // Alanine (6 heavy atoms)
+
+    // Assign names: CB, CA, N, C, O, OXT to all 6 atoms
+    std::vector<std::string> names = {"CB", "CA", "N", "C", "O", "OXT"};
+    int idx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+        if (idx < static_cast<int>(names.size())) {
+            atom->SetName(names[idx].c_str());
+        }
+        idx++;
+    }
+
+    OESelect sel(mol, "protein and backbone");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Should match N, CA, C, O (4 backbone atoms in protein - OXT and CB are not backbone)
+    EXPECT_EQ(count, 4);
+}
+
+TEST(ComponentPredicateTest, ProteinOrWater) {
+    OEChem::OEGraphMol mol;
+    // Alanine: CC(N)C(=O)O = 6 atoms
+    // Water: O = 1 atom
+    // Ethanol: CCO = 3 atoms
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O.O.CCO");
+
+    int atomIdx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        if (atomIdx < 6) {  // Alanine (6 atoms)
+            res.SetName("ALA");
+        } else if (atomIdx < 7) {  // Water (1 atom)
+            res.SetName("HOH");
+        } else {  // Ethanol (3 atoms - ligand)
+            res.SetName("ETH");
+        }
+        OEChem::OEAtomSetResidue(&(*atom), res);
+        atomIdx++;
+    }
+
+    OESelect sel(mol, "protein or water");
+    int protein_and_water_count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) protein_and_water_count++;
+    }
+
+    // Should not include ethanol atoms
+    EXPECT_LT(protein_and_water_count, static_cast<int>(mol.NumAtoms()));
+    // Should include all alanine and water atoms
+    EXPECT_EQ(protein_and_water_count, 7);  // 6 alanine + 1 water
+}
+
+TEST(ComponentPredicateTest, CaseInsensitive) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel_lower(mol, "protein");
+    OESelect sel_upper(mol, "PROTEIN");
+    OESelect sel_mixed(mol, "Protein");
+
+    int count_lower = 0, count_upper = 0, count_mixed = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel_lower(*atom)) count_lower++;
+        if (sel_upper(*atom)) count_upper++;
+        if (sel_mixed(*atom)) count_mixed++;
+    }
+    EXPECT_EQ(count_lower, count_upper);
+    EXPECT_EQ(count_lower, count_mixed);
+}
+
+// ============================================================================
+// Atom Type Predicate Tests (Task 11)
+// ============================================================================
+
+TEST(AtomTypePredicateTest, HeavyPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "C");  // Methane (1 C + 4 H)
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "heavy");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 1);  // Only the carbon
+}
+
+TEST(AtomTypePredicateTest, HydrogenPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "C");
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "hydrogen");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 4);  // 4 hydrogens
+}
+
+TEST(AtomTypePredicateTest, HydrogenAlias) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "C");
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "h");  // Short alias
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 4);
+}
+
+TEST(AtomTypePredicateTest, PolarHydrogenPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "O");  // Water
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "polar_hydrogen");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 2);  // Both H's bonded to O
+}
+
+TEST(AtomTypePredicateTest, PolarHydrogenAlias) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "O");  // Water
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "polarh");  // Short alias
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 2);
+}
+
+TEST(AtomTypePredicateTest, NonpolarHydrogenPredicate) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "C");  // Methane
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "nonpolar_hydrogen");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 4);  // All 4 H's bonded to C
+}
+
+TEST(AtomTypePredicateTest, NonpolarHydrogenAlias) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "C");  // Methane
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "apolarh");  // Short alias
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 4);
+}
+
+TEST(AtomTypePredicateTest, MixedPolarNonpolar) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CO");  // Methanol: CH3-OH
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect polar(mol, "polarh");
+    OESelect nonpolar(mol, "apolarh");
+
+    int polar_count = 0, nonpolar_count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (polar(*atom)) polar_count++;
+        if (nonpolar(*atom)) nonpolar_count++;
+    }
+    EXPECT_EQ(polar_count, 1);     // 1 H on O
+    EXPECT_EQ(nonpolar_count, 3);  // 3 H's on C
+}
+
+TEST(AtomTypePredicateTest, HeavyAndNotHydrogen) {
+    // Verify heavy == not hydrogen
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CCO");
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect heavy(mol, "heavy");
+    OESelect notH(mol, "not hydrogen");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_EQ(heavy(*atom), notH(*atom));
+    }
+}
+
+TEST(AtomTypePredicateTest, PolarHydrogenNitrogen) {
+    // Test hydrogen bonded to nitrogen
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "N");  // Ammonia
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "polar_hydrogen");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 3);  // 3 H's bonded to N
+}
+
+TEST(AtomTypePredicateTest, PolarHydrogenSulfur) {
+    // Test hydrogen bonded to sulfur (thiol)
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CS");  // Methanethiol
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "polar_hydrogen");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 1);  // 1 H on S (the SH hydrogen)
+}
+
+TEST(AtomTypePredicateTest, HeavyAtomCount) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CCO");  // Ethanol
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "heavy");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Ethanol has 3 heavy atoms: C, C, O
+    EXPECT_EQ(count, 3);
+}
+
+TEST(AtomTypePredicateTest, HydrogenAndHeavyMutuallyExclusive) {
+    // Verify hydrogen and heavy are mutually exclusive
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CCO");
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect hydrogen(mol, "hydrogen");
+    OESelect heavy(mol, "heavy");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        // An atom cannot be both hydrogen AND heavy
+        EXPECT_FALSE(hydrogen(*atom) && heavy(*atom));
+        // An atom must be either hydrogen OR heavy
+        EXPECT_TRUE(hydrogen(*atom) || heavy(*atom));
+    }
+}
+
+TEST(AtomTypePredicateTest, PolarAndNonpolarMutuallyExclusive) {
+    // Verify polar and nonpolar hydrogens are mutually exclusive
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CO");  // Methanol
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect polarh(mol, "polarh");
+    OESelect apolarh(mol, "apolarh");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        // A hydrogen cannot be both polar AND nonpolar
+        EXPECT_FALSE(polarh(*atom) && apolarh(*atom));
+    }
+}
+
+TEST(AtomTypePredicateTest, CombinedWithLogicalOperators) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CO");  // Methanol
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    // Select heavy atoms or polar hydrogens
+    OESelect sel(mol, "heavy or polarh");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // 2 heavy atoms (C, O) + 1 polar hydrogen = 3
+    EXPECT_EQ(count, 3);
+}
