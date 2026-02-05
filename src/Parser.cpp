@@ -8,6 +8,7 @@
 #include "oeselect/predicates/AtomTypePredicates.h"
 #include "oeselect/predicates/DistancePredicates.h"
 #include "oeselect/predicates/ExpansionPredicates.h"
+#include "oeselect/predicates/SecondaryStructurePredicates.h"
 
 #include <tao/pegtl.hpp>
 #include <stack>
@@ -30,6 +31,8 @@ struct quoted_string : pegtl::seq<
     pegtl::one<'"'>
 > {};
 struct value : pegtl::sor<quoted_string, glob_pattern> {};
+// Multi-value syntax: value+value+value (no spaces around +)
+struct value_list : pegtl::list<value, pegtl::one<'+'>> {};
 
 // Keywords - case insensitive
 struct kw_name : TAO_PEGTL_ISTRING("name") {};
@@ -42,6 +45,10 @@ struct kw_and : TAO_PEGTL_ISTRING("and") {};
 struct kw_or : TAO_PEGTL_ISTRING("or") {};
 struct kw_not : TAO_PEGTL_ISTRING("not") {};
 struct kw_xor : TAO_PEGTL_ISTRING("xor") {};
+
+// Special keywords (all/none)
+struct kw_all : TAO_PEGTL_ISTRING("all") {};
+struct kw_none : TAO_PEGTL_ISTRING("none") {};
 
 // Component keywords (no value required)
 struct kw_protein : TAO_PEGTL_ISTRING("protein") {};
@@ -81,6 +88,12 @@ struct kw_beyond : TAO_PEGTL_ISTRING("beyond") {};
 struct kw_byres : TAO_PEGTL_ISTRING("byres") {};
 struct kw_bychain : TAO_PEGTL_ISTRING("bychain") {};
 
+// Secondary structure keywords
+struct kw_helix : TAO_PEGTL_ISTRING("helix") {};
+struct kw_sheet : TAO_PEGTL_ISTRING("sheet") {};
+struct kw_turn : TAO_PEGTL_ISTRING("turn") {};
+struct kw_loop : TAO_PEGTL_ISTRING("loop") {};
+
 // Comparison operators
 struct comp_ge : pegtl::string<'>', '='> {};
 struct comp_le : pegtl::string<'<', '='> {};
@@ -95,17 +108,19 @@ struct element_symbol : pegtl::seq<pegtl::alpha, pegtl::opt<pegtl::alpha>> {};
 struct chain_id : pegtl::alpha {};
 
 // Specifiers (leaf nodes)
-struct name_spec : pegtl::seq<kw_name, ws_required, value> {};
-struct resn_spec : pegtl::seq<kw_resn, ws_required, value> {};
+// Multi-value syntax: name CA+CB+N (no spaces around +)
+struct name_spec : pegtl::seq<kw_name, ws_required, value_list> {};
+struct resn_spec : pegtl::seq<kw_resn, ws_required, value_list> {};
 struct resi_comp_spec : pegtl::seq<kw_resi, ws_required, comp_op, ws, number> {};
 struct resi_range_spec : pegtl::seq<kw_resi, ws_required, range> {};
 struct resi_exact_spec : pegtl::seq<kw_resi, ws_required, number> {};
 struct resi_spec : pegtl::sor<resi_comp_spec, resi_range_spec, resi_exact_spec> {};
 struct chain_spec : pegtl::seq<kw_chain, ws_required, chain_id> {};
 struct elem_spec : pegtl::seq<kw_elem, ws_required, element_symbol> {};
+struct index_comp_spec : pegtl::seq<kw_index, ws_required, comp_op, ws, number> {};
 struct index_range_spec : pegtl::seq<kw_index, ws_required, range> {};
 struct index_exact_spec : pegtl::seq<kw_index, ws_required, number> {};
-struct index_spec : pegtl::sor<index_range_spec, index_exact_spec> {};
+struct index_spec : pegtl::sor<index_comp_spec, index_range_spec, index_exact_spec> {};
 
 // Component specifiers (keyword-only, no value)
 struct protein_spec : kw_protein {};
@@ -122,6 +137,31 @@ struct heavy_spec : kw_heavy {};
 struct polar_hydrogen_spec : kw_polar_hydrogen {};
 struct nonpolar_hydrogen_spec : kw_nonpolar_hydrogen {};
 struct hydrogen_spec : kw_hydrogen {};
+
+// Secondary structure specifiers
+struct helix_spec : kw_helix {};
+struct sheet_spec : kw_sheet {};
+struct turn_spec : kw_turn {};
+struct loop_spec : kw_loop {};
+
+// Special specifiers
+struct all_spec : kw_all {};
+struct none_spec : kw_none {};
+
+// Hierarchical macro syntax: //chain/resi/name
+// Empty components act as wildcards: //A// selects all atoms in chain A
+struct macro_prefix : pegtl::string<'/', '/'> {};
+struct macro_chain : pegtl::opt<chain_id> {};
+struct macro_resi : pegtl::opt<number> {};
+struct macro_name : pegtl::opt<glob_pattern> {};
+struct macro_spec : pegtl::seq<
+    macro_prefix,
+    macro_chain,
+    pegtl::one<'/'>,
+    macro_resi,
+    pegtl::one<'/'>,
+    macro_name
+> {};
 
 // Forward declarations for recursive grammar
 struct expression;
@@ -156,17 +196,22 @@ struct bychain_spec : pegtl::seq<kw_bychain, ws_required, primary> {};
 
 // All specifiers
 // IMPORTANT: Order matters - longer/more specific matches must come first
+// macro_spec must come first since it starts with // which is unique
 // polar_hydrogen_spec and nonpolar_hydrogen_spec must come before hydrogen_spec
 // because hydrogen_spec's "h" alias could match the start of other keywords
 // xaround must come before around since "around" is a prefix of "xaround"
 // bychain must come before byres since "byres" could be a prefix match issue
 struct specifier : pegtl::sor<
+    macro_spec,
     name_spec, resn_spec, resi_spec, chain_spec, elem_spec, index_spec,
     protein_spec, ligand_spec, water_spec, solvent_spec, organic_spec,
     backbone_spec, sidechain_spec, metal_spec,
+    // helix_spec must come before hydrogen_spec because hydrogen has 'h' alias
+    helix_spec, sheet_spec, turn_spec, loop_spec,
     heavy_spec, polar_hydrogen_spec, nonpolar_hydrogen_spec, hydrogen_spec,
     xaround_spec, around_spec, beyond_spec,
-    bychain_spec, byres_spec
+    bychain_spec, byres_spec,
+    all_spec, none_spec
 > {};
 
 // Primary: specifier or parenthesized expression
@@ -222,6 +267,7 @@ struct OpContext {
 struct ParserState {
     std::stack<Predicate::Ptr> operands;
     std::string current_value;
+    std::vector<std::string> value_list;  // For multi-value syntax (name CA+CB+N)
 
     // For resi/index parsing
     int first_number = 0;
@@ -230,6 +276,11 @@ struct ParserState {
 
     // For distance predicate parsing
     float current_radius = 0.0f;
+
+    // For hierarchical macro parsing (//chain/resi/name)
+    std::string macro_chain;
+    int macro_resi = -1;  // -1 means wildcard
+    std::string macro_name;
 
     // Stack of operator contexts - one per nesting level (parentheses)
     std::stack<OpContext> contexts;
@@ -273,6 +324,22 @@ struct ParserState {
     }
 };
 
+// TruePredicate for empty selections and 'all' keyword
+class TruePredicateImpl : public Predicate {
+public:
+    bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return true; }
+    std::string ToCanonical() const override { return "all"; }
+    PredicateType Type() const override { return PredicateType::True; }
+};
+
+// FalsePredicate for 'none' keyword
+class FalsePredicateImpl : public Predicate {
+public:
+    bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return false; }
+    std::string ToCanonical() const override { return "none"; }
+    PredicateType Type() const override { return PredicateType::False; }
+};
+
 // Actions
 template<typename Rule>
 struct Action : pegtl::nothing<Rule> {};
@@ -287,6 +354,25 @@ struct Action<Grammar::value> {
             val = val.substr(1, val.size() - 2);
         }
         state.current_value = val;
+        state.value_list.push_back(val);  // Add to list for multi-value syntax
+    }
+};
+
+// Clear value_list when starting to parse a new name specifier
+template<>
+struct Action<Grammar::kw_name> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.value_list.clear();
+    }
+};
+
+// Clear value_list when starting to parse a new resn specifier
+template<>
+struct Action<Grammar::kw_resn> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.value_list.clear();
     }
 };
 
@@ -294,7 +380,18 @@ template<>
 struct Action<Grammar::name_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<NamePredicate>(state.current_value));
+        if (state.value_list.size() == 1) {
+            // Single value
+            state.pushOperand(std::make_shared<NamePredicate>(state.value_list[0]));
+        } else {
+            // Multiple values - create OR predicate
+            std::vector<Predicate::Ptr> children;
+            for (const auto& val : state.value_list) {
+                children.push_back(std::make_shared<NamePredicate>(val));
+            }
+            state.pushOperand(std::make_shared<OrPredicate>(std::move(children)));
+        }
+        state.value_list.clear();
     }
 };
 
@@ -303,7 +400,18 @@ template<>
 struct Action<Grammar::resn_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<ResnPredicate>(state.current_value));
+        if (state.value_list.size() == 1) {
+            // Single value
+            state.pushOperand(std::make_shared<ResnPredicate>(state.value_list[0]));
+        } else {
+            // Multiple values - create OR predicate
+            std::vector<Predicate::Ptr> children;
+            for (const auto& val : state.value_list) {
+                children.push_back(std::make_shared<ResnPredicate>(val));
+            }
+            state.pushOperand(std::make_shared<OrPredicate>(std::move(children)));
+        }
+        state.value_list.clear();
     }
 };
 
@@ -414,6 +522,25 @@ struct Action<Grammar::elem_spec> {
 
 // Index specifiers
 template<>
+struct Action<Grammar::index_comp_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // Convert ResiPredicate::Op to IndexPredicate::Op
+        IndexPredicate::Op index_op;
+        switch (state.comp_op) {
+            case ResiPredicate::Op::Lt: index_op = IndexPredicate::Op::Lt; break;
+            case ResiPredicate::Op::Le: index_op = IndexPredicate::Op::Le; break;
+            case ResiPredicate::Op::Gt: index_op = IndexPredicate::Op::Gt; break;
+            case ResiPredicate::Op::Ge: index_op = IndexPredicate::Op::Ge; break;
+            default: index_op = IndexPredicate::Op::Eq; break;
+        }
+        state.pushOperand(std::make_shared<IndexPredicate>(
+            static_cast<unsigned int>(state.first_number), index_op));
+        state.comp_op = ResiPredicate::Op::Eq;  // Reset
+    }
+};
+
+template<>
 struct Action<Grammar::index_range_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
@@ -428,7 +555,8 @@ template<>
 struct Action<Grammar::index_exact_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<IndexPredicate>(static_cast<unsigned int>(state.first_number)));
+        state.pushOperand(std::make_shared<IndexPredicate>(
+            static_cast<unsigned int>(state.first_number), IndexPredicate::Op::Eq));
     }
 };
 
@@ -527,6 +655,127 @@ struct Action<Grammar::nonpolar_hydrogen_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         state.pushOperand(std::make_shared<NonpolarHydrogenPredicate>());
+    }
+};
+
+// Secondary structure specifier actions
+template<>
+struct Action<Grammar::helix_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<HelixPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::sheet_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<SheetPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::turn_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<TurnPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::loop_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<LoopPredicate>());
+    }
+};
+
+// Special specifier actions
+template<>
+struct Action<Grammar::all_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<TruePredicateImpl>());
+    }
+};
+
+template<>
+struct Action<Grammar::none_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<FalsePredicateImpl>());
+    }
+};
+
+// Hierarchical macro actions
+template<>
+struct Action<Grammar::macro_prefix> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // Reset macro state
+        state.macro_chain.clear();
+        state.macro_resi = -1;
+        state.macro_name.clear();
+    }
+};
+
+template<>
+struct Action<Grammar::macro_chain> {
+    template<typename ActionInput>
+    static void apply(const ActionInput& in, ParserState& state) {
+        state.macro_chain = in.string();
+    }
+};
+
+template<>
+struct Action<Grammar::macro_resi> {
+    template<typename ActionInput>
+    static void apply(const ActionInput& in, ParserState& state) {
+        std::string s = in.string();
+        if (!s.empty()) {
+            state.macro_resi = std::stoi(s);
+        }
+    }
+};
+
+template<>
+struct Action<Grammar::macro_name> {
+    template<typename ActionInput>
+    static void apply(const ActionInput& in, ParserState& state) {
+        state.macro_name = in.string();
+    }
+};
+
+template<>
+struct Action<Grammar::macro_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // Build combined predicate from macro components
+        // //chain/resi/name - empty components are wildcards
+        std::vector<Predicate::Ptr> conditions;
+
+        if (!state.macro_chain.empty()) {
+            conditions.push_back(std::make_shared<ChainPredicate>(state.macro_chain));
+        }
+
+        if (state.macro_resi >= 0) {
+            conditions.push_back(std::make_shared<ResiPredicate>(
+                state.macro_resi, ResiPredicate::Op::Eq));
+        }
+
+        if (!state.macro_name.empty()) {
+            conditions.push_back(std::make_shared<NamePredicate>(state.macro_name));
+        }
+
+        if (conditions.empty()) {
+            // All wildcards - matches all atoms
+            state.pushOperand(std::make_shared<TruePredicateImpl>());
+        } else if (conditions.size() == 1) {
+            state.pushOperand(std::move(conditions[0]));
+        } else {
+            state.pushOperand(std::make_shared<AndPredicate>(std::move(conditions)));
+        }
     }
 };
 
@@ -729,14 +978,6 @@ struct Action<Grammar::xor_expr> {
             }
         }
     }
-};
-
-// TruePredicate for empty selections
-class TruePredicateImpl : public Predicate {
-public:
-    bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return true; }
-    std::string ToCanonical() const override { return "all"; }
-    PredicateType Type() const override { return PredicateType::True; }
 };
 
 Predicate::Ptr ParseSelection(const std::string& sele) {

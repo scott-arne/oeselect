@@ -252,6 +252,324 @@ TEST_F(SelectionTest, OperatorPrecedence) {
 }
 
 // ============================================================================
+// Special Keywords (all, none) Tests - Phase 4
+// ============================================================================
+
+TEST_F(SelectionTest, AllKeywordMatchesAllAtoms) {
+    OESelect sel(mol_, "all");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, static_cast<int>(mol_.NumAtoms()));
+}
+
+TEST_F(SelectionTest, NoneKeywordMatchesNoAtoms) {
+    OESelect sel(mol_, "none");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 0);
+}
+
+TEST_F(SelectionTest, AllKeywordInLogicalExpression) {
+    // Set up atom names
+    int idx = 1;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        atom->SetName(("C" + std::to_string(idx++)).c_str());
+    }
+
+    // "all and name C1" should only match C1
+    OESelect sel(mol_, "all and name C1");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 1);
+}
+
+TEST_F(SelectionTest, NoneKeywordInLogicalExpression) {
+    // Set up atom names
+    int idx = 1;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        atom->SetName(("C" + std::to_string(idx++)).c_str());
+    }
+
+    // "none or name C1" should match C1
+    OESelect sel(mol_, "none or name C1");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 1);
+}
+
+// ============================================================================
+// Multi-value Syntax Tests - Phase 4
+// ============================================================================
+
+TEST_F(SelectionTest, MultiValueNameSyntax) {
+    // Set up atom names
+    int idx = 1;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        atom->SetName(("C" + std::to_string(idx++)).c_str());
+    }
+
+    // "name C1+C2+C3" should match atoms named C1, C2, or C3
+    OESelect sel(mol_, "name C1+C2+C3");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 3);
+}
+
+TEST_F(SelectionTest, MultiValueNameWithLogical) {
+    // Set up atom names
+    int idx = 1;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        atom->SetName(("C" + std::to_string(idx++)).c_str());
+    }
+
+    // "name C1+C2 and name *1" should match C1 (has 1 and is in C1+C2 list)
+    OESelect sel(mol_, "name C1+C2 and name *1");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 1);  // Only C1
+}
+
+// ============================================================================
+// Hierarchical Macro Syntax Tests - Phase 4
+// ============================================================================
+
+class MacroSyntaxTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Create a protein-like structure with residue info
+        OEChem::OESmilesToMol(mol_, "CC(N)C(=O)NCC(=O)O");  // Simplified peptide
+
+        // Set up atoms with names, residues, and chains
+        int atomIdx = 0;
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+
+            if (atomIdx < 3) {
+                // First 3 atoms: ALA, residue 1, chain A, names CA, CB, N
+                res.SetName("ALA");
+                res.SetResidueNumber(1);
+                res.SetChainID('A');
+                if (atomIdx == 0) atom->SetName("CA");
+                else if (atomIdx == 1) atom->SetName("CB");
+                else atom->SetName("N");
+            } else if (atomIdx < 5) {
+                // Next 2 atoms: ALA, residue 1, chain A, names C, O
+                res.SetName("ALA");
+                res.SetResidueNumber(1);
+                res.SetChainID('A');
+                if (atomIdx == 3) atom->SetName("C");
+                else atom->SetName("O");
+            } else {
+                // Remaining atoms: GLY, residue 2, chain B
+                res.SetName("GLY");
+                res.SetResidueNumber(2);
+                res.SetChainID('B');
+                if (atomIdx == 5) atom->SetName("CA");
+                else if (atomIdx == 6) atom->SetName("N");
+                else atom->SetName("C");
+            }
+            OEChem::OEAtomSetResidue(&(*atom), res);
+            atomIdx++;
+        }
+    }
+
+    OEChem::OEGraphMol mol_;
+};
+
+TEST_F(MacroSyntaxTest, MacroChainOnly) {
+    // //A// selects all atoms in chain A
+    OESelect sel(mol_, "//A//");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 5);  // 5 atoms in chain A
+}
+
+TEST_F(MacroSyntaxTest, MacroChainAndResi) {
+    // //A/1/ selects all atoms in chain A, residue 1
+    OESelect sel(mol_, "//A/1/");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 5);  // All chain A atoms are residue 1
+}
+
+TEST_F(MacroSyntaxTest, MacroChainResiName) {
+    // //A/1/CA selects CA atom in chain A, residue 1
+    OESelect sel(mol_, "//A/1/CA");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 1);  // Only one CA in chain A, residue 1
+}
+
+TEST_F(MacroSyntaxTest, MacroNameOnly) {
+    // ////CA selects all CA atoms regardless of chain/residue (//chain/resi/name format)
+    OESelect sel(mol_, "////CA");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 2);  // CA in chain A and CA in chain B
+}
+
+TEST_F(MacroSyntaxTest, MacroAllWildcard) {
+    // //// selects all atoms (all wildcards)
+    OESelect sel(mol_, "////");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, static_cast<int>(mol_.NumAtoms()));
+}
+
+TEST_F(MacroSyntaxTest, MacroWithLogical) {
+    // //A// or //B// should select all atoms
+    OESelect sel(mol_, "//A// or //B//");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, static_cast<int>(mol_.NumAtoms()));
+}
+
+// ============================================================================
+// Secondary Structure Predicate Tests - Phase 4
+// ============================================================================
+
+class SecondaryStructureTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Create a protein-like structure with secondary structure info
+        OEChem::OESmilesToMol(mol_, "CC(N)C(=O)NCC(=O)O");  // Simplified peptide
+
+        // Set up atoms with secondary structure
+        int atomIdx = 0;
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+            res.SetName("ALA");
+            res.SetResidueNumber(atomIdx / 3 + 1);
+            res.SetChainID('A');
+
+            // First 3 atoms: helix
+            // Next 3 atoms: sheet
+            // Remaining: loop (default/unset)
+            if (atomIdx < 3) {
+                res.SetSecondaryStructure(OEBio::OESecondaryStructure::Helix);
+            } else if (atomIdx < 6) {
+                res.SetSecondaryStructure(OEBio::OESecondaryStructure::Sheet);
+            }
+            // else: leave unset for loop
+            OEChem::OEAtomSetResidue(&(*atom), res);
+            atomIdx++;
+        }
+    }
+
+    OEChem::OEGraphMol mol_;
+};
+
+TEST_F(SecondaryStructureTest, HelixPredicate) {
+    OESelect sel(mol_, "helix");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 3);  // First 3 atoms have helix secondary structure
+}
+
+TEST_F(SecondaryStructureTest, SheetPredicate) {
+    OESelect sel(mol_, "sheet");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 3);  // Atoms 4-6 have sheet secondary structure
+}
+
+TEST_F(SecondaryStructureTest, LoopPredicate) {
+    OESelect sel(mol_, "loop");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    // Loop is anything not helix, sheet, or turn
+    int total = static_cast<int>(mol_.NumAtoms());
+    EXPECT_EQ(count, total - 6);  // 6 atoms are helix or sheet
+}
+
+TEST_F(SecondaryStructureTest, SecondaryStructureWithLogical) {
+    OESelect sel(mol_, "helix or sheet");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 6);  // helix (3) + sheet (3)
+}
+
+// ============================================================================
 // Atom Property Predicate Tests (Task 8)
 // ============================================================================
 
@@ -482,6 +800,57 @@ TEST_F(SelectionTest, IndexPredicateLargeValue) {
         }
     }
     EXPECT_EQ(count, 0);  // No atom with index 9999
+}
+
+TEST_F(SelectionTest, IndexPredicateGreaterThan) {
+    OESelect sel(mol_, "index > 5");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    // Atoms with index 6, 7, 8, ... should match
+    int total = static_cast<int>(mol_.NumAtoms());
+    EXPECT_EQ(count, total - 6);  // All atoms except 0-5
+}
+
+TEST_F(SelectionTest, IndexPredicateLessThanOrEqual) {
+    OESelect sel(mol_, "index <= 3");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 4);  // Atoms 0, 1, 2, 3
+}
+
+TEST_F(SelectionTest, IndexPredicateLessThan) {
+    OESelect sel(mol_, "index < 3");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 3);  // Atoms 0, 1, 2
+}
+
+TEST_F(SelectionTest, IndexPredicateGreaterThanOrEqual) {
+    OESelect sel(mol_, "index >= 10");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) {
+            count++;
+        }
+    }
+    int total = static_cast<int>(mol_.NumAtoms());
+    EXPECT_EQ(count, total - 10);  // Atoms 10 and higher
 }
 
 // Combined tests with logical operators

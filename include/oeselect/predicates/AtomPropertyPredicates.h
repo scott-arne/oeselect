@@ -66,10 +66,12 @@ private:
     std::string element_;
 };
 
-/// Matches atoms by atom index with range support
+/// Matches atoms by atom index with range/comparison support
 class IndexPredicate : public Predicate {
 public:
-    explicit IndexPredicate(unsigned int value);
+    enum class Op { Eq, Lt, Le, Gt, Ge, Range };
+
+    IndexPredicate(unsigned int value, Op op = Op::Eq);
     IndexPredicate(unsigned int start, unsigned int end);  // Range constructor
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
@@ -79,7 +81,7 @@ public:
 private:
     unsigned int value_;
     unsigned int end_value_;
-    bool is_range_;
+    Op op_;
 };
 
 }  // namespace OESel

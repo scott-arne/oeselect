@@ -28,6 +28,8 @@ enum class PredicateType {
     ByRes, ByChain,
     // Distance
     Around, XAround, Box, XBox, Beyond,
+    // Secondary structure
+    Helix, Sheet, Turn, Loop,
     // Constants
     True, False
 };

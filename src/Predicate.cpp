@@ -7,6 +7,7 @@
 #include "oeselect/predicates/AtomTypePredicates.h"
 #include "oeselect/predicates/DistancePredicates.h"
 #include "oeselect/predicates/ExpansionPredicates.h"
+#include "oeselect/predicates/SecondaryStructurePredicates.h"
 #include "oeselect/Context.h"
 #include "oeselect/Tagger.h"
 #include "oeselect/SpatialIndex.h"
@@ -250,23 +251,33 @@ std::string ElemPredicate::ToCanonical() const {
 
 // IndexPredicate implementation
 
-IndexPredicate::IndexPredicate(unsigned int value)
-    : value_(value), end_value_(0), is_range_(false) {}
+IndexPredicate::IndexPredicate(unsigned int value, Op op)
+    : value_(value), end_value_(0), op_(op) {}
 
 IndexPredicate::IndexPredicate(unsigned int start, unsigned int end)
-    : value_(start), end_value_(end), is_range_(true) {}
+    : value_(start), end_value_(end), op_(Op::Range) {}
 
 bool IndexPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     unsigned int idx = atom.GetIdx();
-    if (is_range_) {
-        return idx >= value_ && idx <= end_value_;
+    switch (op_) {
+        case Op::Eq:    return idx == value_;
+        case Op::Lt:    return idx < value_;
+        case Op::Le:    return idx <= value_;
+        case Op::Gt:    return idx > value_;
+        case Op::Ge:    return idx >= value_;
+        case Op::Range: return idx >= value_ && idx <= end_value_;
     }
-    return idx == value_;
+    return false;
 }
 
 std::string IndexPredicate::ToCanonical() const {
-    if (is_range_) {
-        return "index " + std::to_string(value_) + "-" + std::to_string(end_value_);
+    switch (op_) {
+        case Op::Eq:    return "index " + std::to_string(value_);
+        case Op::Lt:    return "index < " + std::to_string(value_);
+        case Op::Le:    return "index <= " + std::to_string(value_);
+        case Op::Gt:    return "index > " + std::to_string(value_);
+        case Op::Ge:    return "index >= " + std::to_string(value_);
+        case Op::Range: return "index " + std::to_string(value_) + "-" + std::to_string(end_value_);
     }
     return "index " + std::to_string(value_);
 }
@@ -710,6 +721,34 @@ bool ByChainPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) co
 
 std::string ByChainPredicate::ToCanonical() const {
     return "bychain " + child_->ToCanonical();
+}
+
+// HelixPredicate implementation
+bool HelixPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
+    const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
+    return res.GetSecondaryStructure() == OEBio::OESecondaryStructure::Helix;
+}
+
+// SheetPredicate implementation
+bool SheetPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
+    const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
+    return res.GetSecondaryStructure() == OEBio::OESecondaryStructure::Sheet;
+}
+
+// TurnPredicate implementation
+bool TurnPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
+    const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
+    return res.GetSecondaryStructure() == OEBio::OESecondaryStructure::Turn;
+}
+
+// LoopPredicate implementation
+bool LoopPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
+    const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
+    unsigned int ss = res.GetSecondaryStructure();
+    // Loop/coil is anything that's not helix, sheet, or turn
+    return ss != OEBio::OESecondaryStructure::Helix &&
+           ss != OEBio::OESecondaryStructure::Sheet &&
+           ss != OEBio::OESecondaryStructure::Turn;
 }
 
 }  // namespace OESel
