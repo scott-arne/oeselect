@@ -11,6 +11,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(oeselect_tests
     cpp/test_main.cpp
     cpp/test_selection.cpp
+    cpp/test_spatial_index.cpp
 )
 
 target_link_libraries(oeselect_tests

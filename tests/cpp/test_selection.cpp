@@ -1518,3 +1518,596 @@ TEST(AtomTypePredicateTest, CombinedWithLogicalOperators) {
     // 2 heavy atoms (C, O) + 1 polar hydrogen = 3
     EXPECT_EQ(count, 3);
 }
+
+// ============================================================================
+// Distance Predicate Tests (Task 13)
+// ============================================================================
+
+class DistancePredicateTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Create atoms at known positions for distance testing
+        // REF at origin (0, 0, 0)
+        // NEAR at (1.5, 0, 0) - 1.5 angstroms from origin
+        // MID at (4.0, 0, 0) - 4.0 angstroms from origin
+        // FAR at (10.0, 0, 0) - 10.0 angstroms from origin
+
+        mol_.NewAtom(6);  // Atom 0 - REF
+        mol_.NewAtom(6);  // Atom 1 - NEAR
+        mol_.NewAtom(6);  // Atom 2 - MID
+        mol_.NewAtom(6);  // Atom 3 - FAR
+
+        float coords[4][3] = {
+            {0.0f, 0.0f, 0.0f},     // REF
+            {1.5f, 0.0f, 0.0f},     // NEAR
+            {4.0f, 0.0f, 0.0f},     // MID
+            {10.0f, 0.0f, 0.0f}     // FAR
+        };
+
+        int idx = 0;
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+            mol_.SetCoords(&(*atom), coords[idx]);
+            switch (idx) {
+                case 0: atom->SetName("REF"); break;
+                case 1: atom->SetName("NEAR"); break;
+                case 2: atom->SetName("MID"); break;
+                case 3: atom->SetName("FAR"); break;
+            }
+            idx++;
+        }
+    }
+
+    OEChem::OEGraphMol mol_;
+};
+
+TEST_F(DistancePredicateTest, AroundBasic) {
+    // around 3.0 name REF should match REF (at 0) and NEAR (at 1.5)
+    OESelect sel(mol_, "around 3.0 name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        std::string name = atom->GetName();
+        bool matches = sel(*atom);
+        if (name == "REF") {
+            EXPECT_TRUE(matches) << "REF should be within around selection (distance 0)";
+        } else if (name == "NEAR") {
+            EXPECT_TRUE(matches) << "NEAR should be within around selection (distance 1.5)";
+        } else if (name == "MID") {
+            EXPECT_FALSE(matches) << "MID should NOT be within around selection (distance 4.0)";
+        } else if (name == "FAR") {
+            EXPECT_FALSE(matches) << "FAR should NOT be within around selection (distance 10.0)";
+        }
+        if (matches) count++;
+    }
+    EXPECT_EQ(count, 2);  // REF and NEAR
+}
+
+TEST_F(DistancePredicateTest, AroundLargerRadius) {
+    // around 5.0 name REF should match REF, NEAR, and MID
+    OESelect sel(mol_, "around 5.0 name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 3);  // REF, NEAR, MID
+}
+
+TEST_F(DistancePredicateTest, XAroundExcludesReference) {
+    // xaround 3.0 name REF should match only NEAR (excludes REF itself)
+    OESelect sel(mol_, "xaround 3.0 name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        std::string name = atom->GetName();
+        bool matches = sel(*atom);
+        if (name == "REF") {
+            EXPECT_FALSE(matches) << "REF should be EXCLUDED from xaround selection";
+        } else if (name == "NEAR") {
+            EXPECT_TRUE(matches) << "NEAR should be within xaround selection";
+        } else if (name == "MID") {
+            EXPECT_FALSE(matches) << "MID should NOT be within xaround selection";
+        } else if (name == "FAR") {
+            EXPECT_FALSE(matches) << "FAR should NOT be within xaround selection";
+        }
+        if (matches) count++;
+    }
+    EXPECT_EQ(count, 1);  // Only NEAR
+}
+
+TEST_F(DistancePredicateTest, XAroundLargerRadius) {
+    // xaround 5.0 name REF should match NEAR and MID (excludes REF)
+    OESelect sel(mol_, "xaround 5.0 name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 2);  // NEAR and MID
+}
+
+TEST_F(DistancePredicateTest, BeyondBasic) {
+    // beyond 3.0 name REF should match MID and FAR
+    OESelect sel(mol_, "beyond 3.0 name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        std::string name = atom->GetName();
+        bool matches = sel(*atom);
+        if (name == "REF") {
+            EXPECT_FALSE(matches) << "REF should NOT be beyond selection (distance 0)";
+        } else if (name == "NEAR") {
+            EXPECT_FALSE(matches) << "NEAR should NOT be beyond selection (distance 1.5)";
+        } else if (name == "MID") {
+            EXPECT_TRUE(matches) << "MID should be beyond selection (distance 4.0)";
+        } else if (name == "FAR") {
+            EXPECT_TRUE(matches) << "FAR should be beyond selection (distance 10.0)";
+        }
+        if (matches) count++;
+    }
+    EXPECT_EQ(count, 2);  // MID and FAR
+}
+
+TEST_F(DistancePredicateTest, BeyondLargerRadius) {
+    // beyond 5.0 name REF should match only FAR
+    OESelect sel(mol_, "beyond 5.0 name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 1);  // Only FAR
+}
+
+TEST_F(DistancePredicateTest, AroundWithParentheses) {
+    // Test around with parenthesized selection
+    OESelect sel(mol_, "around 3.0 (name REF or name NEAR)");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // REF and NEAR are reference atoms
+    // Atoms within 3.0 of REF: REF, NEAR
+    // Atoms within 3.0 of NEAR: REF, NEAR, MID (MID is 2.5 from NEAR)
+    // Union: REF, NEAR, MID
+    EXPECT_EQ(count, 3);
+}
+
+TEST_F(DistancePredicateTest, AroundFloatingPoint) {
+    // Test floating point radius parsing
+    OESelect sel(mol_, "around 1.6 name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // REF (0) and NEAR (1.5) are within 1.6
+    EXPECT_EQ(count, 2);
+}
+
+TEST_F(DistancePredicateTest, AroundExactBoundary) {
+    // Test boundary case - radius exactly matches distance
+    OESelect sel(mol_, "around 1.5 name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // REF (0) is within, NEAR (1.5) is on boundary
+    // nanoflann uses <= for radius search
+    EXPECT_GE(count, 1);  // At least REF
+}
+
+TEST_F(DistancePredicateTest, AroundCombinedWithAnd) {
+    // Test distance predicate combined with logical operator
+    OESelect sel(mol_, "around 5.0 name REF and not name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Same as xaround - within 5.0 but not REF itself
+    EXPECT_EQ(count, 2);  // NEAR and MID
+}
+
+TEST_F(DistancePredicateTest, BeyondAll) {
+    // Test beyond with large radius - should match nothing
+    OESelect sel(mol_, "beyond 100.0 name REF");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 0);  // All atoms are within 100.0 of REF
+}
+
+TEST_F(DistancePredicateTest, AroundMultipleReferenceAtoms) {
+    // Create a molecule with multiple reference atoms in different positions
+    OEChem::OEGraphMol mol2;
+    mol2.NewAtom(6);  // REF1 at origin
+    mol2.NewAtom(6);  // REF2 at (5, 0, 0)
+    mol2.NewAtom(6);  // TARGET at (2.5, 0, 0) - equidistant
+    mol2.NewAtom(6);  // FAR at (10, 0, 0)
+
+    float coords[4][3] = {
+        {0.0f, 0.0f, 0.0f},
+        {5.0f, 0.0f, 0.0f},
+        {2.5f, 0.0f, 0.0f},
+        {10.0f, 0.0f, 0.0f}
+    };
+
+    int idx = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol2.GetAtoms(); atom; ++atom) {
+        mol2.SetCoords(&(*atom), coords[idx]);
+        switch (idx) {
+            case 0: atom->SetName("REF1"); break;
+            case 1: atom->SetName("REF2"); break;
+            case 2: atom->SetName("TARGET"); break;
+            case 3: atom->SetName("FAR"); break;
+        }
+        idx++;
+    }
+
+    // around 3.0 with REF1 or REF2 as reference
+    OESelect sel(mol2, "around 3.0 (name REF1 or name REF2)");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol2.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // REF1 (within 0 of itself), REF2 (within 0 of itself), TARGET (2.5 from both)
+    // FAR is 10 from REF1 and 5 from REF2 - too far from both
+    EXPECT_EQ(count, 3);  // REF1, REF2, TARGET
+}
+
+TEST_F(DistancePredicateTest, ToCanonicalAround) {
+    OESelection sele = OESelection::Parse("around 5.0 name REF");
+    std::string canonical = sele.ToCanonical();
+    EXPECT_TRUE(canonical.find("around") != std::string::npos);
+    EXPECT_TRUE(canonical.find("5") != std::string::npos);
+}
+
+TEST_F(DistancePredicateTest, ToCanonicalXAround) {
+    OESelection sele = OESelection::Parse("xaround 3.5 name CA");
+    std::string canonical = sele.ToCanonical();
+    EXPECT_TRUE(canonical.find("xaround") != std::string::npos);
+    EXPECT_TRUE(canonical.find("3.5") != std::string::npos);
+}
+
+TEST_F(DistancePredicateTest, ToCanonicalBeyond) {
+    OESelection sele = OESelection::Parse("beyond 10.0 water");
+    std::string canonical = sele.ToCanonical();
+    EXPECT_TRUE(canonical.find("beyond") != std::string::npos);
+    EXPECT_TRUE(canonical.find("10") != std::string::npos);
+}
+
+// ============================================================================
+// Expansion Predicate Tests (Task 14)
+// ============================================================================
+
+TEST(ExpansionPredicateTest, ByResBasic) {
+    OEChem::OEGraphMol mol;
+    // Create atoms with residue info
+    auto* a1 = mol.NewAtom(6);
+    auto* a2 = mol.NewAtom(7);
+    auto* a3 = mol.NewAtom(8);
+
+    a1->SetName("CA");
+    a2->SetName("N");
+    a3->SetName("O");
+
+    // Put a1 and a2 in residue 1, a3 in residue 2
+    OEChem::OEResidue res1, res2;
+    res1.SetName("ALA");
+    res1.SetResidueNumber(1);
+    res1.SetChainID('A');
+    res2.SetName("GLY");
+    res2.SetResidueNumber(2);
+    res2.SetChainID('A');
+
+    OEChem::OEAtomSetResidue(a1, res1);
+    OEChem::OEAtomSetResidue(a2, res1);
+    OEChem::OEAtomSetResidue(a3, res2);
+
+    // byres name CA should select a1 AND a2 (both in residue 1)
+    OESelect sel(mol, "byres name CA");
+
+    EXPECT_TRUE(sel(*a1));   // CA itself
+    EXPECT_TRUE(sel(*a2));   // N in same residue
+    EXPECT_FALSE(sel(*a3));  // O in different residue
+}
+
+TEST(ExpansionPredicateTest, ByResMultipleMatchingAtoms) {
+    OEChem::OEGraphMol mol;
+    // Create atoms in 3 residues
+    auto* a1 = mol.NewAtom(6);  // Res 1
+    auto* a2 = mol.NewAtom(7);  // Res 1
+    auto* a3 = mol.NewAtom(6);  // Res 2 - another CA
+    auto* a4 = mol.NewAtom(8);  // Res 2
+    auto* a5 = mol.NewAtom(7);  // Res 3 - no CA
+
+    a1->SetName("CA");
+    a2->SetName("N");
+    a3->SetName("CA");
+    a4->SetName("O");
+    a5->SetName("N");
+
+    OEChem::OEResidue res1, res2, res3;
+    res1.SetName("ALA");
+    res1.SetResidueNumber(1);
+    res1.SetChainID('A');
+    res2.SetName("GLY");
+    res2.SetResidueNumber(2);
+    res2.SetChainID('A');
+    res3.SetName("VAL");
+    res3.SetResidueNumber(3);
+    res3.SetChainID('A');
+
+    OEChem::OEAtomSetResidue(a1, res1);
+    OEChem::OEAtomSetResidue(a2, res1);
+    OEChem::OEAtomSetResidue(a3, res2);
+    OEChem::OEAtomSetResidue(a4, res2);
+    OEChem::OEAtomSetResidue(a5, res3);
+
+    // byres name CA should select all atoms in residues containing CA
+    OESelect sel(mol, "byres name CA");
+
+    EXPECT_TRUE(sel(*a1));   // CA in res 1
+    EXPECT_TRUE(sel(*a2));   // N in res 1 (has CA)
+    EXPECT_TRUE(sel(*a3));   // CA in res 2
+    EXPECT_TRUE(sel(*a4));   // O in res 2 (has CA)
+    EXPECT_FALSE(sel(*a5));  // N in res 3 (no CA)
+}
+
+TEST(ExpansionPredicateTest, ByChainBasic) {
+    OEChem::OEGraphMol mol;
+    auto* a1 = mol.NewAtom(6);
+    auto* a2 = mol.NewAtom(7);
+    auto* a3 = mol.NewAtom(8);
+
+    a1->SetName("CA");
+    a2->SetName("N");
+    a3->SetName("O");
+
+    OEChem::OEResidue resA1, resA2, resB;
+    resA1.SetChainID('A');
+    resA1.SetResidueNumber(1);
+    resA1.SetName("ALA");
+    resA2.SetChainID('A');
+    resA2.SetResidueNumber(2);
+    resA2.SetName("GLY");
+    resB.SetChainID('B');
+    resB.SetResidueNumber(1);
+    resB.SetName("VAL");
+
+    OEChem::OEAtomSetResidue(a1, resA1);
+    OEChem::OEAtomSetResidue(a2, resA2);  // Same chain A, different residue
+    OEChem::OEAtomSetResidue(a3, resB);   // Chain B
+
+    // bychain name CA should select a1 and a2 (both in chain A)
+    OESelect sel(mol, "bychain name CA");
+
+    EXPECT_TRUE(sel(*a1));   // CA in chain A
+    EXPECT_TRUE(sel(*a2));   // N in chain A (same chain as CA)
+    EXPECT_FALSE(sel(*a3));  // O in chain B
+}
+
+TEST(ExpansionPredicateTest, ByChainMultipleChains) {
+    OEChem::OEGraphMol mol;
+    auto* a1 = mol.NewAtom(6);  // Chain A - has CA
+    auto* a2 = mol.NewAtom(7);  // Chain A
+    auto* a3 = mol.NewAtom(6);  // Chain B - has CA
+    auto* a4 = mol.NewAtom(8);  // Chain B
+    auto* a5 = mol.NewAtom(7);  // Chain C - no CA
+
+    a1->SetName("CA");
+    a2->SetName("N");
+    a3->SetName("CA");
+    a4->SetName("O");
+    a5->SetName("N");
+
+    OEChem::OEResidue resA, resB, resC;
+    resA.SetChainID('A');
+    resA.SetResidueNumber(1);
+    resB.SetChainID('B');
+    resB.SetResidueNumber(1);
+    resC.SetChainID('C');
+    resC.SetResidueNumber(1);
+
+    OEChem::OEAtomSetResidue(a1, resA);
+    OEChem::OEAtomSetResidue(a2, resA);
+    OEChem::OEAtomSetResidue(a3, resB);
+    OEChem::OEAtomSetResidue(a4, resB);
+    OEChem::OEAtomSetResidue(a5, resC);
+
+    // bychain name CA should select atoms in chains A and B (both have CA)
+    OESelect sel(mol, "bychain name CA");
+
+    EXPECT_TRUE(sel(*a1));   // CA in chain A
+    EXPECT_TRUE(sel(*a2));   // N in chain A
+    EXPECT_TRUE(sel(*a3));   // CA in chain B
+    EXPECT_TRUE(sel(*a4));   // O in chain B
+    EXPECT_FALSE(sel(*a5));  // N in chain C (no CA)
+}
+
+TEST(ExpansionPredicateTest, ByResWithLogicalOp) {
+    OEChem::OEGraphMol mol;
+    auto* a1 = mol.NewAtom(6);  // CA in res 1
+    auto* a2 = mol.NewAtom(6);  // CB in res 1
+    auto* a3 = mol.NewAtom(7);  // N in res 1
+    auto* a4 = mol.NewAtom(8);  // O in res 2 (no CA or CB)
+
+    a1->SetName("CA");
+    a2->SetName("CB");
+    a3->SetName("N");
+    a4->SetName("O");
+
+    OEChem::OEResidue res1, res2;
+    res1.SetName("ALA");
+    res1.SetResidueNumber(1);
+    res1.SetChainID('A');
+    res2.SetName("GLY");
+    res2.SetResidueNumber(2);
+    res2.SetChainID('A');
+
+    OEChem::OEAtomSetResidue(a1, res1);
+    OEChem::OEAtomSetResidue(a2, res1);
+    OEChem::OEAtomSetResidue(a3, res1);
+    OEChem::OEAtomSetResidue(a4, res2);
+
+    // byres (name CA or name CB) should select all atoms in res 1
+    OESelect sel(mol, "byres (name CA or name CB)");
+
+    EXPECT_TRUE(sel(*a1));   // CA in res 1
+    EXPECT_TRUE(sel(*a2));   // CB in res 1
+    EXPECT_TRUE(sel(*a3));   // N in res 1
+    EXPECT_FALSE(sel(*a4));  // O in res 2
+}
+
+TEST(ExpansionPredicateTest, ByResNothing) {
+    OEChem::OEGraphMol mol;
+    auto* a1 = mol.NewAtom(6);
+    auto* a2 = mol.NewAtom(7);
+
+    a1->SetName("CA");
+    a2->SetName("N");
+
+    OEChem::OEResidue res1;
+    res1.SetName("ALA");
+    res1.SetResidueNumber(1);
+    res1.SetChainID('A');
+
+    OEChem::OEAtomSetResidue(a1, res1);
+    OEChem::OEAtomSetResidue(a2, res1);
+
+    // byres name NONEXISTENT - should match nothing
+    OESelect sel(mol, "byres name NONEXISTENT");
+
+    EXPECT_FALSE(sel(*a1));
+    EXPECT_FALSE(sel(*a2));
+}
+
+TEST(ExpansionPredicateTest, ByChainNothing) {
+    OEChem::OEGraphMol mol;
+    auto* a1 = mol.NewAtom(6);
+    auto* a2 = mol.NewAtom(7);
+
+    a1->SetName("CA");
+    a2->SetName("N");
+
+    OEChem::OEResidue resA;
+    resA.SetChainID('A');
+    resA.SetResidueNumber(1);
+
+    OEChem::OEAtomSetResidue(a1, resA);
+    OEChem::OEAtomSetResidue(a2, resA);
+
+    // bychain name NONEXISTENT - should match nothing
+    OESelect sel(mol, "bychain name NONEXISTENT");
+
+    EXPECT_FALSE(sel(*a1));
+    EXPECT_FALSE(sel(*a2));
+}
+
+TEST(ExpansionPredicateTest, ByResToCanonical) {
+    OESelection sele = OESelection::Parse("byres name CA");
+    std::string canonical = sele.ToCanonical();
+    EXPECT_TRUE(canonical.find("byres") != std::string::npos);
+    EXPECT_TRUE(canonical.find("name CA") != std::string::npos);
+}
+
+TEST(ExpansionPredicateTest, ByChainToCanonical) {
+    OESelection sele = OESelection::Parse("bychain name FE");
+    std::string canonical = sele.ToCanonical();
+    EXPECT_TRUE(canonical.find("bychain") != std::string::npos);
+    EXPECT_TRUE(canonical.find("name FE") != std::string::npos);
+}
+
+TEST(ExpansionPredicateTest, ByResWithProtein) {
+    OEChem::OEGraphMol mol;
+    // Create a small protein-like structure
+    auto* a1 = mol.NewAtom(6);  // Protein CA
+    auto* a2 = mol.NewAtom(7);  // Protein N
+    auto* a3 = mol.NewAtom(8);  // Water O
+
+    a1->SetName("CA");
+    a2->SetName("N");
+    a3->SetName("O");
+
+    OEChem::OEResidue resProtein, resWater;
+    resProtein.SetName("ALA");
+    resProtein.SetResidueNumber(1);
+    resProtein.SetChainID('A');
+    resWater.SetName("HOH");
+    resWater.SetResidueNumber(100);
+    resWater.SetChainID(' ');
+
+    OEChem::OEAtomSetResidue(a1, resProtein);
+    OEChem::OEAtomSetResidue(a2, resProtein);
+    OEChem::OEAtomSetResidue(a3, resWater);
+
+    // byres protein should expand protein to full residues
+    OESelect sel(mol, "byres protein");
+
+    EXPECT_TRUE(sel(*a1));   // Protein atom
+    EXPECT_TRUE(sel(*a2));   // Protein atom in same residue
+    EXPECT_FALSE(sel(*a3));  // Water - not protein
+}
+
+TEST(ExpansionPredicateTest, ByResCaseInsensitive) {
+    OEChem::OEGraphMol mol;
+    auto* a1 = mol.NewAtom(6);
+    auto* a2 = mol.NewAtom(7);
+
+    a1->SetName("CA");
+    a2->SetName("N");
+
+    OEChem::OEResidue res1;
+    res1.SetName("ALA");
+    res1.SetResidueNumber(1);
+    res1.SetChainID('A');
+
+    OEChem::OEAtomSetResidue(a1, res1);
+    OEChem::OEAtomSetResidue(a2, res1);
+
+    // Test case insensitivity of byres keyword
+    OESelect sel_lower(mol, "byres name CA");
+    OESelect sel_upper(mol, "BYRES name CA");
+    OESelect sel_mixed(mol, "ByRes name CA");
+
+    EXPECT_TRUE(sel_lower(*a1));
+    EXPECT_TRUE(sel_upper(*a1));
+    EXPECT_TRUE(sel_mixed(*a1));
+    EXPECT_TRUE(sel_lower(*a2));
+    EXPECT_TRUE(sel_upper(*a2));
+    EXPECT_TRUE(sel_mixed(*a2));
+}
+
+TEST(ExpansionPredicateTest, ByChainCaseInsensitive) {
+    OEChem::OEGraphMol mol;
+    auto* a1 = mol.NewAtom(6);
+    auto* a2 = mol.NewAtom(7);
+
+    a1->SetName("CA");
+    a2->SetName("N");
+
+    OEChem::OEResidue resA;
+    resA.SetChainID('A');
+    resA.SetResidueNumber(1);
+
+    OEChem::OEAtomSetResidue(a1, resA);
+    OEChem::OEAtomSetResidue(a2, resA);
+
+    // Test case insensitivity of bychain keyword
+    OESelect sel_lower(mol, "bychain name CA");
+    OESelect sel_upper(mol, "BYCHAIN name CA");
+    OESelect sel_mixed(mol, "ByChain name CA");
+
+    EXPECT_TRUE(sel_lower(*a1));
+    EXPECT_TRUE(sel_upper(*a1));
+    EXPECT_TRUE(sel_mixed(*a1));
+    EXPECT_TRUE(sel_lower(*a2));
+    EXPECT_TRUE(sel_upper(*a2));
+    EXPECT_TRUE(sel_mixed(*a2));
+}

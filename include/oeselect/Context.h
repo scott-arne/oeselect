@@ -41,10 +41,12 @@ public:
     /// Residue membership cache
     const std::unordered_set<unsigned int>& GetResidueAtoms(const std::string& key);
     void SetResidueAtoms(const std::string& key, std::unordered_set<unsigned int> atoms);
+    bool HasResidueCache(const std::string& key) const;
 
     /// Chain membership cache
     const std::unordered_set<unsigned int>& GetChainAtoms(const std::string& key);
     void SetChainAtoms(const std::string& key, std::unordered_set<unsigned int> atoms);
+    bool HasChainCache(const std::string& key) const;
 
     /// Distance cache
     const std::vector<bool>& GetAroundCache(const std::string& key);

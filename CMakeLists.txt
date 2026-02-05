@@ -55,6 +55,7 @@ set(OESELECT_SOURCES
     src/Selection.cpp
     src/Selector.cpp
     src/Context.cpp
+    src/SpatialIndex.cpp
     src/Parser.cpp
     src/Predicate.cpp
     src/Tagger.cpp

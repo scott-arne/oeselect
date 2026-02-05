@@ -6,6 +6,8 @@
 #include "oeselect/predicates/AtomPropertyPredicates.h"
 #include "oeselect/predicates/ComponentPredicates.h"
 #include "oeselect/predicates/AtomTypePredicates.h"
+#include "oeselect/predicates/DistancePredicates.h"
+#include "oeselect/predicates/ExpansionPredicates.h"
 
 #include <tao/pegtl.hpp>
 #include <stack>
@@ -63,6 +65,22 @@ struct kw_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("hydrogen"), TAO_PEGTL_ISTRING
 struct number : pegtl::plus<pegtl::digit> {};
 struct range : pegtl::seq<number, pegtl::one<'-'>, number> {};
 
+// Floating point number for distance predicates
+struct float_num : pegtl::seq<
+    pegtl::opt<pegtl::one<'-'>>,
+    pegtl::plus<pegtl::digit>,
+    pegtl::opt<pegtl::seq<pegtl::one<'.'>, pegtl::star<pegtl::digit>>>
+> {};
+
+// Distance keywords
+struct kw_around : TAO_PEGTL_ISTRING("around") {};
+struct kw_xaround : TAO_PEGTL_ISTRING("xaround") {};
+struct kw_beyond : TAO_PEGTL_ISTRING("beyond") {};
+
+// Expansion keywords
+struct kw_byres : TAO_PEGTL_ISTRING("byres") {};
+struct kw_bychain : TAO_PEGTL_ISTRING("bychain") {};
+
 // Comparison operators
 struct comp_ge : pegtl::string<'>', '='> {};
 struct comp_le : pegtl::string<'<', '='> {};
@@ -75,9 +93,6 @@ struct element_symbol : pegtl::seq<pegtl::alpha, pegtl::opt<pegtl::alpha>> {};
 
 // Chain ID (single character)
 struct chain_id : pegtl::alpha {};
-
-// Forward declarations for recursive grammar
-struct expression;
 
 // Specifiers (leaf nodes)
 struct name_spec : pegtl::seq<kw_name, ws_required, value> {};
@@ -108,16 +123,9 @@ struct polar_hydrogen_spec : kw_polar_hydrogen {};
 struct nonpolar_hydrogen_spec : kw_nonpolar_hydrogen {};
 struct hydrogen_spec : kw_hydrogen {};
 
-// All specifiers
-// IMPORTANT: Order matters - longer/more specific matches must come first
-// polar_hydrogen_spec and nonpolar_hydrogen_spec must come before hydrogen_spec
-// because hydrogen_spec's "h" alias could match the start of other keywords
-struct specifier : pegtl::sor<
-    name_spec, resn_spec, resi_spec, chain_spec, elem_spec, index_spec,
-    protein_spec, ligand_spec, water_spec, solvent_spec, organic_spec,
-    backbone_spec, sidechain_spec, metal_spec,
-    heavy_spec, polar_hydrogen_spec, nonpolar_hydrogen_spec, hydrogen_spec
-> {};
+// Forward declarations for recursive grammar
+struct expression;
+struct primary;
 
 // Markers for parentheses (for action tracking)
 struct open_paren : pegtl::one<'('> {};
@@ -130,6 +138,35 @@ struct paren_expr : pegtl::seq<
     expression,
     ws,
     close_paren
+> {};
+
+// Distance specifiers - take a radius and a nested primary expression
+// The nested selection can be a simple specifier or a parenthesized expression
+// around 5.0 protein
+// around 5.0 (name CA or name CB)
+// xaround 3.0 name REF
+// beyond 10.0 water
+struct around_spec : pegtl::seq<kw_around, ws_required, float_num, ws_required, primary> {};
+struct xaround_spec : pegtl::seq<kw_xaround, ws_required, float_num, ws_required, primary> {};
+struct beyond_spec : pegtl::seq<kw_beyond, ws_required, float_num, ws_required, primary> {};
+
+// Expansion specifiers - take a nested selection
+struct byres_spec : pegtl::seq<kw_byres, ws_required, primary> {};
+struct bychain_spec : pegtl::seq<kw_bychain, ws_required, primary> {};
+
+// All specifiers
+// IMPORTANT: Order matters - longer/more specific matches must come first
+// polar_hydrogen_spec and nonpolar_hydrogen_spec must come before hydrogen_spec
+// because hydrogen_spec's "h" alias could match the start of other keywords
+// xaround must come before around since "around" is a prefix of "xaround"
+// bychain must come before byres since "byres" could be a prefix match issue
+struct specifier : pegtl::sor<
+    name_spec, resn_spec, resi_spec, chain_spec, elem_spec, index_spec,
+    protein_spec, ligand_spec, water_spec, solvent_spec, organic_spec,
+    backbone_spec, sidechain_spec, metal_spec,
+    heavy_spec, polar_hydrogen_spec, nonpolar_hydrogen_spec, hydrogen_spec,
+    xaround_spec, around_spec, beyond_spec,
+    bychain_spec, byres_spec
 > {};
 
 // Primary: specifier or parenthesized expression
@@ -190,6 +227,9 @@ struct ParserState {
     int first_number = 0;
     int second_number = 0;
     ResiPredicate::Op comp_op = ResiPredicate::Op::Eq;
+
+    // For distance predicate parsing
+    float current_radius = 0.0f;
 
     // Stack of operator contexts - one per nesting level (parentheses)
     std::stack<OpContext> contexts;
@@ -487,6 +527,67 @@ struct Action<Grammar::nonpolar_hydrogen_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         state.pushOperand(std::make_shared<NonpolarHydrogenPredicate>());
+    }
+};
+
+// Float number action - capture for distance predicates
+template<>
+struct Action<Grammar::float_num> {
+    template<typename ActionInput>
+    static void apply(const ActionInput& in, ParserState& state) {
+        state.current_radius = std::stof(in.string());
+    }
+};
+
+// Distance specifier actions
+template<>
+struct Action<Grammar::around_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // The reference selection is already on the stack from parsing primary
+        auto reference = state.popOperand();
+        state.pushOperand(std::make_shared<AroundPredicate>(state.current_radius, std::move(reference)));
+    }
+};
+
+template<>
+struct Action<Grammar::xaround_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // The reference selection is already on the stack from parsing primary
+        auto reference = state.popOperand();
+        state.pushOperand(std::make_shared<XAroundPredicate>(state.current_radius, std::move(reference)));
+    }
+};
+
+template<>
+struct Action<Grammar::beyond_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // The reference selection is already on the stack from parsing primary
+        auto reference = state.popOperand();
+        state.pushOperand(std::make_shared<BeyondPredicate>(state.current_radius, std::move(reference)));
+    }
+};
+
+// Expansion specifier actions
+template<>
+struct Action<Grammar::byres_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // The child selection is already on the stack from parsing primary
+        auto child = state.popOperand();
+        state.pushOperand(std::make_shared<ByResPredicate>(std::move(child)));
+    }
+};
+
+template<>
+struct Action<Grammar::bychain_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        // The child selection is already on the stack from parsing primary
+        auto child = state.popOperand();
+        state.pushOperand(std::make_shared<ByChainPredicate>(std::move(child)));
     }
 };
 

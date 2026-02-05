@@ -1,18 +1,11 @@
 // src/Context.cpp
 #include "oeselect/Context.h"
 #include "oeselect/Selection.h"
+#include "oeselect/SpatialIndex.h"
 
 #include <oechem.h>
 
 namespace OESel {
-
-// Forward declaration
-class SpatialIndex {
-public:
-    SpatialIndex(OEChem::OEMolBase& mol) : mol_(mol) {}
-private:
-    OEChem::OEMolBase& mol_;
-};
 
 struct Context::Impl {
     OEChem::OEMolBase& mol;
@@ -49,12 +42,20 @@ void Context::SetResidueAtoms(const std::string& key, std::unordered_set<unsigne
     pimpl_->residue_cache[key] = std::move(atoms);
 }
 
+bool Context::HasResidueCache(const std::string& key) const {
+    return pimpl_->residue_cache.find(key) != pimpl_->residue_cache.end();
+}
+
 const std::unordered_set<unsigned int>& Context::GetChainAtoms(const std::string& key) {
     return pimpl_->chain_cache[key];
 }
 
 void Context::SetChainAtoms(const std::string& key, std::unordered_set<unsigned int> atoms) {
     pimpl_->chain_cache[key] = std::move(atoms);
+}
+
+bool Context::HasChainCache(const std::string& key) const {
+    return pimpl_->chain_cache.find(key) != pimpl_->chain_cache.end();
 }
 
 const std::vector<bool>& Context::GetAroundCache(const std::string& key) {
