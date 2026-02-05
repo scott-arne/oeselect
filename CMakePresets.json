@@ -12,7 +12,7 @@
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "OPENEYE_ROOT": "/home/johnss51/Support/openeye"
+                "OPENEYE_ROOT": "/Users/johnss51/Support/openeye/lib/openeye/toolkits/2025.2.1/macOS-14.8-clang++16-universal"
             }
         },
         {
@@ -21,7 +21,7 @@
             "binaryDir": "${sourceDir}/build-debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "OPENEYE_ROOT": "/home/johnss51/Support/openeye"
+                "OPENEYE_ROOT": "/Users/johnss51/Support/openeye/lib/openeye/toolkits/2025.2.1/macOS-14.8-clang++16-universal"
             }
         }
     ],

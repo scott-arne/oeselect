@@ -55,9 +55,23 @@ std::string OESelection::ToCanonical() const {
     return pimpl_->root->ToCanonical();
 }
 
+namespace {
+// Helper function to recursively check for predicate type
+bool containsPredicateRecursive(const Predicate& pred, PredicateType type) {
+    if (pred.Type() == type) {
+        return true;
+    }
+    for (const auto& child : pred.Children()) {
+        if (containsPredicateRecursive(*child, type)) {
+            return true;
+        }
+    }
+    return false;
+}
+}  // namespace
+
 bool OESelection::ContainsPredicate(PredicateType type) const {
-    // TODO: Implement tree traversal
-    return pimpl_->root->Type() == type;
+    return containsPredicateRecursive(*pimpl_->root, type);
 }
 
 const Predicate& OESelection::Root() const {
