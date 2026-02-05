@@ -1,4 +1,12 @@
-// src/Parser.cpp
+/**
+ * @file Parser.cpp
+ * @brief PEGTL-based selection parser implementation.
+ *
+ * This file implements the grammar and actions for parsing PyMOL-style
+ * selection strings into predicate trees. The parser uses operator
+ * precedence: NOT > AND > OR > XOR.
+ */
+
 #include "oeselect/Parser.h"
 #include "oeselect/Error.h"
 #include "oeselect/predicates/NamePredicate.h"
@@ -16,13 +24,17 @@
 namespace pegtl = tao::pegtl;
 
 namespace OESel {
+
+// ============================================================================
+// Grammar Rules
+// ============================================================================
 namespace Grammar {
 
-// Whitespace
+// Whitespace handling
 struct ws : pegtl::star<pegtl::space> {};
 struct ws_required : pegtl::plus<pegtl::space> {};
 
-// Identifiers and patterns
+// Pattern matching for names and residues
 struct glob_char : pegtl::sor<pegtl::alnum, pegtl::one<'*', '?', '_', '-'>> {};
 struct glob_pattern : pegtl::plus<glob_char> {};
 struct quoted_string : pegtl::seq<
@@ -31,26 +43,27 @@ struct quoted_string : pegtl::seq<
     pegtl::one<'"'>
 > {};
 struct value : pegtl::sor<quoted_string, glob_pattern> {};
-// Multi-value syntax: value+value+value (no spaces around +)
 struct value_list : pegtl::list<value, pegtl::one<'+'>> {};
 
-// Keywords - case insensitive
+// Property keywords (case-insensitive)
 struct kw_name : TAO_PEGTL_ISTRING("name") {};
 struct kw_resn : TAO_PEGTL_ISTRING("resn") {};
 struct kw_resi : TAO_PEGTL_ISTRING("resi") {};
 struct kw_chain : TAO_PEGTL_ISTRING("chain") {};
 struct kw_elem : TAO_PEGTL_ISTRING("elem") {};
 struct kw_index : TAO_PEGTL_ISTRING("index") {};
+
+// Logical operators
 struct kw_and : TAO_PEGTL_ISTRING("and") {};
 struct kw_or : TAO_PEGTL_ISTRING("or") {};
 struct kw_not : TAO_PEGTL_ISTRING("not") {};
 struct kw_xor : TAO_PEGTL_ISTRING("xor") {};
 
-// Special keywords (all/none)
+// Special keywords
 struct kw_all : TAO_PEGTL_ISTRING("all") {};
 struct kw_none : TAO_PEGTL_ISTRING("none") {};
 
-// Component keywords (no value required)
+// Component keywords
 struct kw_protein : TAO_PEGTL_ISTRING("protein") {};
 struct kw_ligand : TAO_PEGTL_ISTRING("ligand") {};
 struct kw_water : TAO_PEGTL_ISTRING("water") {};
@@ -60,31 +73,25 @@ struct kw_backbone : pegtl::sor<TAO_PEGTL_ISTRING("backbone"), TAO_PEGTL_ISTRING
 struct kw_sidechain : pegtl::sor<TAO_PEGTL_ISTRING("sidechain"), TAO_PEGTL_ISTRING("sc")> {};
 struct kw_metal : pegtl::sor<TAO_PEGTL_ISTRING("metals"), TAO_PEGTL_ISTRING("metal")> {};
 
-// Atom type keywords
-// Note: Order matters - longer matches must come first
-// polar_hydrogen before hydrogen, nonpolar_hydrogen before hydrogen
+// Atom type keywords (order matters for disambiguation)
 struct kw_heavy : TAO_PEGTL_ISTRING("heavy") {};
 struct kw_polar_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("polar_hydrogen"), TAO_PEGTL_ISTRING("polarh")> {};
 struct kw_nonpolar_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("nonpolar_hydrogen"), TAO_PEGTL_ISTRING("apolarh")> {};
 struct kw_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("hydrogen"), TAO_PEGTL_ISTRING("h")> {};
 
-// Numbers and ranges
+// Numeric patterns
 struct number : pegtl::plus<pegtl::digit> {};
 struct range : pegtl::seq<number, pegtl::one<'-'>, number> {};
-
-// Floating point number for distance predicates
 struct float_num : pegtl::seq<
     pegtl::opt<pegtl::one<'-'>>,
     pegtl::plus<pegtl::digit>,
     pegtl::opt<pegtl::seq<pegtl::one<'.'>, pegtl::star<pegtl::digit>>>
 > {};
 
-// Distance keywords
+// Distance and expansion keywords
 struct kw_around : TAO_PEGTL_ISTRING("around") {};
 struct kw_xaround : TAO_PEGTL_ISTRING("xaround") {};
 struct kw_beyond : TAO_PEGTL_ISTRING("beyond") {};
-
-// Expansion keywords
 struct kw_byres : TAO_PEGTL_ISTRING("byres") {};
 struct kw_bychain : TAO_PEGTL_ISTRING("bychain") {};
 
@@ -101,14 +108,11 @@ struct comp_gt : pegtl::one<'>'> {};
 struct comp_lt : pegtl::one<'<'> {};
 struct comp_op : pegtl::sor<comp_ge, comp_le, comp_gt, comp_lt> {};
 
-// Element symbol (1-2 letters, case insensitive)
+// Atomic patterns
 struct element_symbol : pegtl::seq<pegtl::alpha, pegtl::opt<pegtl::alpha>> {};
-
-// Chain ID (single character)
 struct chain_id : pegtl::alpha {};
 
-// Specifiers (leaf nodes)
-// Multi-value syntax: name CA+CB+N (no spaces around +)
+// Property specifiers with values
 struct name_spec : pegtl::seq<kw_name, ws_required, value_list> {};
 struct resn_spec : pegtl::seq<kw_resn, ws_required, value_list> {};
 struct resi_comp_spec : pegtl::seq<kw_resi, ws_required, comp_op, ws, number> {};
@@ -122,7 +126,7 @@ struct index_range_spec : pegtl::seq<kw_index, ws_required, range> {};
 struct index_exact_spec : pegtl::seq<kw_index, ws_required, number> {};
 struct index_spec : pegtl::sor<index_comp_spec, index_range_spec, index_exact_spec> {};
 
-// Component specifiers (keyword-only, no value)
+// Keyword-only specifiers
 struct protein_spec : kw_protein {};
 struct ligand_spec : kw_ligand {};
 struct water_spec : kw_water {};
@@ -132,24 +136,20 @@ struct backbone_spec : kw_backbone {};
 struct sidechain_spec : kw_sidechain {};
 struct metal_spec : kw_metal {};
 
-// Atom type specifiers
 struct heavy_spec : kw_heavy {};
 struct polar_hydrogen_spec : kw_polar_hydrogen {};
 struct nonpolar_hydrogen_spec : kw_nonpolar_hydrogen {};
 struct hydrogen_spec : kw_hydrogen {};
 
-// Secondary structure specifiers
 struct helix_spec : kw_helix {};
 struct sheet_spec : kw_sheet {};
 struct turn_spec : kw_turn {};
 struct loop_spec : kw_loop {};
 
-// Special specifiers
 struct all_spec : kw_all {};
 struct none_spec : kw_none {};
 
-// Hierarchical macro syntax: //chain/resi/name
-// Empty components act as wildcards: //A// selects all atoms in chain A
+// Hierarchical macro: //chain/resi/name
 struct macro_prefix : pegtl::string<'/', '/'> {};
 struct macro_chain : pegtl::opt<chain_id> {};
 struct macro_resi : pegtl::opt<number> {};
@@ -167,11 +167,10 @@ struct macro_spec : pegtl::seq<
 struct expression;
 struct primary;
 
-// Markers for parentheses (for action tracking)
+// Parentheses markers for action tracking
 struct open_paren : pegtl::one<'('> {};
 struct close_paren : pegtl::one<')'> {};
 
-// Parenthesized expression
 struct paren_expr : pegtl::seq<
     open_paren,
     ws,
@@ -180,33 +179,21 @@ struct paren_expr : pegtl::seq<
     close_paren
 > {};
 
-// Distance specifiers - take a radius and a nested primary expression
-// The nested selection can be a simple specifier or a parenthesized expression
-// around 5.0 protein
-// around 5.0 (name CA or name CB)
-// xaround 3.0 name REF
-// beyond 10.0 water
+// Distance specifiers with nested selection
 struct around_spec : pegtl::seq<kw_around, ws_required, float_num, ws_required, primary> {};
 struct xaround_spec : pegtl::seq<kw_xaround, ws_required, float_num, ws_required, primary> {};
 struct beyond_spec : pegtl::seq<kw_beyond, ws_required, float_num, ws_required, primary> {};
 
-// Expansion specifiers - take a nested selection
+// Expansion specifiers
 struct byres_spec : pegtl::seq<kw_byres, ws_required, primary> {};
 struct bychain_spec : pegtl::seq<kw_bychain, ws_required, primary> {};
 
-// All specifiers
-// IMPORTANT: Order matters - longer/more specific matches must come first
-// macro_spec must come first since it starts with // which is unique
-// polar_hydrogen_spec and nonpolar_hydrogen_spec must come before hydrogen_spec
-// because hydrogen_spec's "h" alias could match the start of other keywords
-// xaround must come before around since "around" is a prefix of "xaround"
-// bychain must come before byres since "byres" could be a prefix match issue
+// All specifiers (order matters - longer matches first)
 struct specifier : pegtl::sor<
     macro_spec,
     name_spec, resn_spec, resi_spec, chain_spec, elem_spec, index_spec,
     protein_spec, ligand_spec, water_spec, solvent_spec, organic_spec,
     backbone_spec, sidechain_spec, metal_spec,
-    // helix_spec must come before hydrogen_spec because hydrogen has 'h' alias
     helix_spec, sheet_spec, turn_spec, loop_spec,
     heavy_spec, polar_hydrogen_spec, nonpolar_hydrogen_spec, hydrogen_spec,
     xaround_spec, around_spec, beyond_spec,
@@ -214,48 +201,45 @@ struct specifier : pegtl::sor<
     all_spec, none_spec
 > {};
 
-// Primary: specifier or parenthesized expression
 struct primary : pegtl::sor<paren_expr, specifier> {};
 
-// NOT expression: "not" prefix (unary, highest precedence)
+// Operator markers for action tracking
 struct not_op : kw_not {};
-struct not_expr : pegtl::sor<
-    pegtl::seq<not_op, ws_required, not_expr>,  // Allow chained "not not x"
-    primary
-> {};
-
-// Individual operator markers (for action tracking)
 struct and_op : kw_and {};
 struct or_op : kw_or {};
 struct xor_op : kw_xor {};
 
-// AND expression (higher precedence than OR)
+// Expression grammar with precedence
+struct not_expr : pegtl::sor<
+    pegtl::seq<not_op, ws_required, not_expr>,
+    primary
+> {};
+
 struct and_expr : pegtl::seq<
     not_expr,
     pegtl::star<pegtl::seq<ws_required, and_op, ws_required, not_expr>>
 > {};
 
-// OR expression (higher precedence than XOR)
 struct or_expr : pegtl::seq<
     and_expr,
     pegtl::star<pegtl::seq<ws_required, or_op, ws_required, and_expr>>
 > {};
 
-// XOR expression (lowest precedence)
 struct xor_expr : pegtl::seq<
     or_expr,
     pegtl::star<pegtl::seq<ws_required, xor_op, ws_required, or_expr>>
 > {};
 
-// Top-level expression
 struct expression : xor_expr {};
-
-// Selection rule
 struct selection : pegtl::seq<ws, expression, ws, pegtl::eof> {};
 
 }  // namespace Grammar
 
-// Context for tracking operators at a given nesting level
+// ============================================================================
+// Parser State
+// ============================================================================
+
+/// Tracks operator counts at a given nesting level
 struct OpContext {
     int and_count = 0;
     int or_count = 0;
@@ -263,39 +247,35 @@ struct OpContext {
     int not_count = 0;
 };
 
-// Parser state with operator counting stacks
+/// Parser state with operand stack and operator context
 struct ParserState {
     std::stack<Predicate::Ptr> operands;
     std::string current_value;
-    std::vector<std::string> value_list;  // For multi-value syntax (name CA+CB+N)
+    std::vector<std::string> value_list;
 
-    // For resi/index parsing
+    // Numeric state for resi/index
     int first_number = 0;
     int second_number = 0;
     ResiPredicate::Op comp_op = ResiPredicate::Op::Eq;
 
-    // For distance predicate parsing
+    // Distance predicate state
     float current_radius = 0.0f;
 
-    // For hierarchical macro parsing (//chain/resi/name)
+    // Hierarchical macro state
     std::string macro_chain;
-    int macro_resi = -1;  // -1 means wildcard
+    int macro_resi = -1;
     std::string macro_name;
 
-    // Stack of operator contexts - one per nesting level (parentheses)
+    // Operator context stack (one per nesting level)
     std::stack<OpContext> contexts;
 
     ParserState() {
         contexts.push(OpContext{});
     }
 
-    OpContext& currentContext() {
-        return contexts.top();
-    }
+    OpContext& currentContext() { return contexts.top(); }
 
-    void pushContext() {
-        contexts.push(OpContext{});
-    }
+    void pushContext() { contexts.push(OpContext{}); }
 
     void popContext() {
         if (contexts.size() > 1) {
@@ -324,7 +304,11 @@ struct ParserState {
     }
 };
 
-// TruePredicate for empty selections and 'all' keyword
+// ============================================================================
+// Internal Predicate Implementations
+// ============================================================================
+
+/// Always-true predicate for empty selections and 'all' keyword
 class TruePredicateImpl : public Predicate {
 public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return true; }
@@ -332,7 +316,7 @@ public:
     PredicateType Type() const override { return PredicateType::True; }
 };
 
-// FalsePredicate for 'none' keyword
+/// Always-false predicate for 'none' keyword
 class FalsePredicateImpl : public Predicate {
 public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return false; }
@@ -340,25 +324,29 @@ public:
     PredicateType Type() const override { return PredicateType::False; }
 };
 
-// Actions
+// ============================================================================
+// Parser Actions
+// ============================================================================
+
 template<typename Rule>
 struct Action : pegtl::nothing<Rule> {};
 
+// Value capture
 template<>
 struct Action<Grammar::value> {
     template<typename ActionInput>
     static void apply(const ActionInput& in, ParserState& state) {
         std::string val = in.string();
-        // Remove quotes if present
+        // Strip quotes if present
         if (val.size() >= 2 && val.front() == '"' && val.back() == '"') {
             val = val.substr(1, val.size() - 2);
         }
         state.current_value = val;
-        state.value_list.push_back(val);  // Add to list for multi-value syntax
+        state.value_list.push_back(val);
     }
 };
 
-// Clear value_list when starting to parse a new name specifier
+// Clear value list on keyword
 template<>
 struct Action<Grammar::kw_name> {
     template<typename ActionInput>
@@ -367,7 +355,6 @@ struct Action<Grammar::kw_name> {
     }
 };
 
-// Clear value_list when starting to parse a new resn specifier
 template<>
 struct Action<Grammar::kw_resn> {
     template<typename ActionInput>
@@ -376,15 +363,15 @@ struct Action<Grammar::kw_resn> {
     }
 };
 
+// Name specifier with multi-value support
 template<>
 struct Action<Grammar::name_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         if (state.value_list.size() == 1) {
-            // Single value
             state.pushOperand(std::make_shared<NamePredicate>(state.value_list[0]));
         } else {
-            // Multiple values - create OR predicate
+            // Multiple values become OR predicate
             std::vector<Predicate::Ptr> children;
             for (const auto& val : state.value_list) {
                 children.push_back(std::make_shared<NamePredicate>(val));
@@ -395,16 +382,13 @@ struct Action<Grammar::name_spec> {
     }
 };
 
-// Resn specifier - uses same value as name
 template<>
 struct Action<Grammar::resn_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         if (state.value_list.size() == 1) {
-            // Single value
             state.pushOperand(std::make_shared<ResnPredicate>(state.value_list[0]));
         } else {
-            // Multiple values - create OR predicate
             std::vector<Predicate::Ptr> children;
             for (const auto& val : state.value_list) {
                 children.push_back(std::make_shared<ResnPredicate>(val));
@@ -415,18 +399,17 @@ struct Action<Grammar::resn_spec> {
     }
 };
 
-// Number action - capture for resi/index
+// Number capture
 template<>
 struct Action<Grammar::number> {
     template<typename ActionInput>
     static void apply(const ActionInput& in, ParserState& state) {
-        // Shift first_number to second_number if we already have a first
         state.second_number = state.first_number;
         state.first_number = std::stoi(in.string());
     }
 };
 
-// Comparison operator actions
+// Comparison operators
 template<>
 struct Action<Grammar::comp_ge> {
     template<typename ActionInput>
@@ -459,13 +442,13 @@ struct Action<Grammar::comp_lt> {
     }
 };
 
-// Resi specifiers
+// Residue specifiers
 template<>
 struct Action<Grammar::resi_comp_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         state.pushOperand(std::make_shared<ResiPredicate>(state.first_number, state.comp_op));
-        state.comp_op = ResiPredicate::Op::Eq;  // Reset
+        state.comp_op = ResiPredicate::Op::Eq;
     }
 };
 
@@ -473,7 +456,6 @@ template<>
 struct Action<Grammar::resi_range_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // After parsing range, second_number has start, first_number has end
         state.pushOperand(std::make_shared<ResiPredicate>(state.second_number, state.first_number));
     }
 };
@@ -486,7 +468,7 @@ struct Action<Grammar::resi_exact_spec> {
     }
 };
 
-// Chain specifier
+// Chain and element
 template<>
 struct Action<Grammar::chain_id> {
     template<typename ActionInput>
@@ -503,7 +485,6 @@ struct Action<Grammar::chain_spec> {
     }
 };
 
-// Element specifier
 template<>
 struct Action<Grammar::element_symbol> {
     template<typename ActionInput>
@@ -525,7 +506,6 @@ template<>
 struct Action<Grammar::index_comp_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // Convert ResiPredicate::Op to IndexPredicate::Op
         IndexPredicate::Op index_op;
         switch (state.comp_op) {
             case ResiPredicate::Op::Lt: index_op = IndexPredicate::Op::Lt; break;
@@ -536,7 +516,7 @@ struct Action<Grammar::index_comp_spec> {
         }
         state.pushOperand(std::make_shared<IndexPredicate>(
             static_cast<unsigned int>(state.first_number), index_op));
-        state.comp_op = ResiPredicate::Op::Eq;  // Reset
+        state.comp_op = ResiPredicate::Op::Eq;
     }
 };
 
@@ -544,7 +524,6 @@ template<>
 struct Action<Grammar::index_range_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // After parsing range, second_number has start, first_number has end
         state.pushOperand(std::make_shared<IndexPredicate>(
             static_cast<unsigned int>(state.second_number),
             static_cast<unsigned int>(state.first_number)));
@@ -658,7 +637,7 @@ struct Action<Grammar::nonpolar_hydrogen_spec> {
     }
 };
 
-// Secondary structure specifier actions
+// Secondary structure specifiers
 template<>
 struct Action<Grammar::helix_spec> {
     template<typename ActionInput>
@@ -691,7 +670,7 @@ struct Action<Grammar::loop_spec> {
     }
 };
 
-// Special specifier actions
+// Special specifiers
 template<>
 struct Action<Grammar::all_spec> {
     template<typename ActionInput>
@@ -713,7 +692,6 @@ template<>
 struct Action<Grammar::macro_prefix> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // Reset macro state
         state.macro_chain.clear();
         state.macro_resi = -1;
         state.macro_name.clear();
@@ -751,25 +729,20 @@ template<>
 struct Action<Grammar::macro_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // Build combined predicate from macro components
-        // //chain/resi/name - empty components are wildcards
         std::vector<Predicate::Ptr> conditions;
 
         if (!state.macro_chain.empty()) {
             conditions.push_back(std::make_shared<ChainPredicate>(state.macro_chain));
         }
-
         if (state.macro_resi >= 0) {
             conditions.push_back(std::make_shared<ResiPredicate>(
                 state.macro_resi, ResiPredicate::Op::Eq));
         }
-
         if (!state.macro_name.empty()) {
             conditions.push_back(std::make_shared<NamePredicate>(state.macro_name));
         }
 
         if (conditions.empty()) {
-            // All wildcards - matches all atoms
             state.pushOperand(std::make_shared<TruePredicateImpl>());
         } else if (conditions.size() == 1) {
             state.pushOperand(std::move(conditions[0]));
@@ -779,7 +752,7 @@ struct Action<Grammar::macro_spec> {
     }
 };
 
-// Float number action - capture for distance predicates
+// Float capture for distance predicates
 template<>
 struct Action<Grammar::float_num> {
     template<typename ActionInput>
@@ -788,12 +761,11 @@ struct Action<Grammar::float_num> {
     }
 };
 
-// Distance specifier actions
+// Distance specifiers
 template<>
 struct Action<Grammar::around_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // The reference selection is already on the stack from parsing primary
         auto reference = state.popOperand();
         state.pushOperand(std::make_shared<AroundPredicate>(state.current_radius, std::move(reference)));
     }
@@ -803,7 +775,6 @@ template<>
 struct Action<Grammar::xaround_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // The reference selection is already on the stack from parsing primary
         auto reference = state.popOperand();
         state.pushOperand(std::make_shared<XAroundPredicate>(state.current_radius, std::move(reference)));
     }
@@ -813,18 +784,16 @@ template<>
 struct Action<Grammar::beyond_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // The reference selection is already on the stack from parsing primary
         auto reference = state.popOperand();
         state.pushOperand(std::make_shared<BeyondPredicate>(state.current_radius, std::move(reference)));
     }
 };
 
-// Expansion specifier actions
+// Expansion specifiers
 template<>
 struct Action<Grammar::byres_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // The child selection is already on the stack from parsing primary
         auto child = state.popOperand();
         state.pushOperand(std::make_shared<ByResPredicate>(std::move(child)));
     }
@@ -834,13 +803,12 @@ template<>
 struct Action<Grammar::bychain_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        // The child selection is already on the stack from parsing primary
         auto child = state.popOperand();
         state.pushOperand(std::make_shared<ByChainPredicate>(std::move(child)));
     }
 };
 
-// Opening parenthesis - push new context
+// Parentheses - context management
 template<>
 struct Action<Grammar::open_paren> {
     template<typename ActionInput>
@@ -849,7 +817,6 @@ struct Action<Grammar::open_paren> {
     }
 };
 
-// Closing parenthesis - pop context
 template<>
 struct Action<Grammar::close_paren> {
     template<typename ActionInput>
@@ -858,7 +825,7 @@ struct Action<Grammar::close_paren> {
     }
 };
 
-// Track NOT operator
+// Operator tracking
 template<>
 struct Action<Grammar::not_op> {
     template<typename ActionInput>
@@ -867,7 +834,6 @@ struct Action<Grammar::not_op> {
     }
 };
 
-// Track AND operator
 template<>
 struct Action<Grammar::and_op> {
     template<typename ActionInput>
@@ -876,7 +842,6 @@ struct Action<Grammar::and_op> {
     }
 };
 
-// Track OR operator
 template<>
 struct Action<Grammar::or_op> {
     template<typename ActionInput>
@@ -885,7 +850,6 @@ struct Action<Grammar::or_op> {
     }
 };
 
-// Track XOR operator
 template<>
 struct Action<Grammar::xor_op> {
     template<typename ActionInput>
@@ -894,7 +858,7 @@ struct Action<Grammar::xor_op> {
     }
 };
 
-// Apply NOT - wrap current operand
+// Apply NOT
 template<>
 struct Action<Grammar::not_expr> {
     template<typename ActionInput>
@@ -902,7 +866,7 @@ struct Action<Grammar::not_expr> {
         auto& ctx = state.currentContext();
         if (ctx.not_count > 0) {
             int not_count = ctx.not_count;
-            ctx.not_count = 0;  // Reset for next usage
+            ctx.not_count = 0;
 
             if (!state.operands.empty()) {
                 for (int i = 0; i < not_count; ++i) {
@@ -914,7 +878,7 @@ struct Action<Grammar::not_expr> {
     }
 };
 
-// Apply AND - combine operands
+// Apply AND
 template<>
 struct Action<Grammar::and_expr> {
     template<typename ActionInput>
@@ -922,7 +886,7 @@ struct Action<Grammar::and_expr> {
         auto& ctx = state.currentContext();
         if (ctx.and_count > 0) {
             int and_count = ctx.and_count;
-            ctx.and_count = 0;  // Reset
+            ctx.and_count = 0;
 
             if (state.operands.size() >= static_cast<size_t>(and_count + 1)) {
                 std::vector<Predicate::Ptr> children;
@@ -936,7 +900,7 @@ struct Action<Grammar::and_expr> {
     }
 };
 
-// Apply OR - combine operands
+// Apply OR
 template<>
 struct Action<Grammar::or_expr> {
     template<typename ActionInput>
@@ -944,7 +908,7 @@ struct Action<Grammar::or_expr> {
         auto& ctx = state.currentContext();
         if (ctx.or_count > 0) {
             int or_count = ctx.or_count;
-            ctx.or_count = 0;  // Reset
+            ctx.or_count = 0;
 
             if (state.operands.size() >= static_cast<size_t>(or_count + 1)) {
                 std::vector<Predicate::Ptr> children;
@@ -958,7 +922,7 @@ struct Action<Grammar::or_expr> {
     }
 };
 
-// Apply XOR - combine operands
+// Apply XOR
 template<>
 struct Action<Grammar::xor_expr> {
     template<typename ActionInput>
@@ -966,7 +930,7 @@ struct Action<Grammar::xor_expr> {
         auto& ctx = state.currentContext();
         if (ctx.xor_count > 0) {
             int xor_count = ctx.xor_count;
-            ctx.xor_count = 0;  // Reset
+            ctx.xor_count = 0;
 
             if (state.operands.size() >= static_cast<size_t>(xor_count + 1)) {
                 std::vector<Predicate::Ptr> children;
@@ -979,6 +943,10 @@ struct Action<Grammar::xor_expr> {
         }
     }
 };
+
+// ============================================================================
+// Public API
+// ============================================================================
 
 Predicate::Ptr ParseSelection(const std::string& sele) {
     if (sele.empty()) {

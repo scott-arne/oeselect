@@ -1,4 +1,10 @@
-// src/SpatialIndex.cpp
+/**
+ * @file SpatialIndex.cpp
+ * @brief K-d tree spatial index implementation using nanoflann.
+ *
+ * Provides efficient O(log n) radius queries for distance-based predicates.
+ */
+
 #include "oeselect/SpatialIndex.h"
 
 #include <oechem.h>
@@ -9,10 +15,15 @@
 
 namespace OESel {
 
-/// Point cloud adaptor for nanoflann k-d tree
+/**
+ * @brief Point cloud adaptor for nanoflann k-d tree.
+ *
+ * Stores atom coordinates in a flat array format suitable for nanoflann.
+ * Maintains mapping between array indices and atom indices.
+ */
 struct MoleculePointCloud {
-    std::vector<float> coords;  // x, y, z for each atom
-    std::vector<unsigned int> atom_indices;
+    std::vector<float> coords;           ///< Flat array: x0,y0,z0,x1,y1,z1,...
+    std::vector<unsigned int> atom_indices;  ///< Original atom indices
 
     explicit MoleculePointCloud(OEChem::OEMolBase& mol) {
         size_t n = mol.NumAtoms();
@@ -30,34 +41,37 @@ struct MoleculePointCloud {
         }
     }
 
-    // nanoflann interface methods
+    // nanoflann required interface
 
-    /// Returns number of points in the cloud
+    /// @brief Returns number of points in the cloud.
     size_t kdtree_get_point_count() const { return atom_indices.size(); }
 
-    /// Returns the coordinate of point idx in dimension dim
+    /// @brief Returns coordinate dim of point idx.
     float kdtree_get_pt(size_t idx, size_t dim) const {
         return coords[idx * 3 + dim];
     }
 
-    /// Optional bounding-box computation (returns false to skip)
+    /// @brief Optional bounding-box computation (disabled).
     template<class BBOX>
     bool kdtree_get_bbox(BBOX&) const { return false; }
 };
 
+/// K-d tree type using L2 (Euclidean) distance
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<
     nanoflann::L2_Simple_Adaptor<float, MoleculePointCloud>,
     MoleculePointCloud,
-    3,  // dimensions
-    unsigned int  // index type
+    3,              // 3D space
+    unsigned int    // index type
 >;
 
+/// PIMPL containing point cloud and k-d tree
 struct SpatialIndex::Impl {
     MoleculePointCloud cloud;
     std::unique_ptr<KDTree> tree;
 
     explicit Impl(OEChem::OEMolBase& mol) : cloud(mol) {
         if (!cloud.atom_indices.empty()) {
+            // Leaf size of 10 provides good balance between build and query time
             tree = std::make_unique<KDTree>(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
             tree->buildIndex();
         }
@@ -74,13 +88,14 @@ std::vector<unsigned int> SpatialIndex::FindWithinRadius(float x, float y, float
     if (!pimpl_->tree) return result;
 
     float query[3] = {x, y, z};
-    float radius_sq = radius * radius;
+    float radius_sq = radius * radius;  // nanoflann uses squared distances
 
     std::vector<nanoflann::ResultItem<unsigned int, float>> matches;
     pimpl_->tree->radiusSearch(query, radius_sq, matches);
 
     result.reserve(matches.size());
     for (const auto& match : matches) {
+        // Convert internal index back to atom index
         result.push_back(pimpl_->cloud.atom_indices[match.first]);
     }
     return result;

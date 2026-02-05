@@ -1,16 +1,24 @@
-// src/Context.cpp
+/**
+ * @file Context.cpp
+ * @brief Evaluation context with caching implementation.
+ */
+
 #include "oeselect/Context.h"
 #include "oeselect/Selection.h"
 #include "oeselect/SpatialIndex.h"
 
 #include <oechem.h>
+#include <unordered_map>
 
 namespace OESel {
 
+/// PIMPL containing molecule reference, selection, and caches
 struct Context::Impl {
     OEChem::OEMolBase& mol;
     const OESelection& sele;
     std::unique_ptr<SpatialIndex> spatial_index;
+
+    // Caches keyed by predicate canonical form
     std::unordered_map<std::string, std::unordered_set<unsigned int>> residue_cache;
     std::unordered_map<std::string, std::unordered_set<unsigned int>> chain_cache;
     std::unordered_map<std::string, std::vector<bool>> around_cache;
@@ -28,6 +36,7 @@ const OEChem::OEMolBase& Context::Mol() const { return pimpl_->mol; }
 const OESelection& Context::Sele() const { return pimpl_->sele; }
 
 SpatialIndex& Context::GetSpatialIndex() {
+    // Lazy initialization - only create when needed
     if (!pimpl_->spatial_index) {
         pimpl_->spatial_index = std::make_unique<SpatialIndex>(pimpl_->mol);
     }

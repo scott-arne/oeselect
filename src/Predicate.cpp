@@ -1,4 +1,18 @@
-// src/Predicate.cpp
+/**
+ * @file Predicate.cpp
+ * @brief Predicate implementations for all selection types.
+ *
+ * This file contains the Evaluate() and ToCanonical() implementations
+ * for all predicate classes. Predicates are organized by category:
+ * - Name and property predicates
+ * - Logical predicates (AND, OR, NOT, XOR)
+ * - Component predicates (protein, ligand, etc.)
+ * - Atom type predicates (heavy, hydrogen)
+ * - Distance predicates (around, xaround, beyond)
+ * - Expansion predicates (byres, bychain)
+ * - Secondary structure predicates
+ */
+
 #include "oeselect/Predicate.h"
 #include "oeselect/predicates/NamePredicate.h"
 #include "oeselect/predicates/LogicalPredicates.h"

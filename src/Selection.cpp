@@ -1,11 +1,19 @@
-// src/Selection.cpp
+/**
+ * @file Selection.cpp
+ * @brief OESelection implementation.
+ */
+
 #include "oeselect/Selection.h"
 #include "oeselect/Parser.h"
-#include "oeselect/Error.h"
 
 namespace OESel {
 
-// TruePredicate as default (matches all atoms)
+/**
+ * @brief Internal predicate that always returns true.
+ *
+ * Used as the default root predicate for empty selections,
+ * effectively selecting all atoms.
+ */
 class TruePredicate : public Predicate {
 public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override {
@@ -15,6 +23,7 @@ public:
     PredicateType Type() const override { return PredicateType::True; }
 };
 
+/// PIMPL implementation holding the root predicate
 struct OESelection::Impl {
     Predicate::Ptr root;
 
@@ -24,7 +33,7 @@ struct OESelection::Impl {
 
 OESelection OESelection::Parse(const std::string& sele) {
     if (sele.empty()) {
-        return OESelection();
+        return OESelection();  // Empty string = select all
     }
     auto root = ParseSelection(sele);
     return OESelection(root);
@@ -56,7 +65,13 @@ std::string OESelection::ToCanonical() const {
 }
 
 namespace {
-// Helper function to recursively check for predicate type
+/**
+ * @brief Recursively search predicate tree for a specific type.
+ *
+ * @param pred Root of subtree to search.
+ * @param type Target predicate type.
+ * @return true if any predicate in the subtree has the target type.
+ */
 bool containsPredicateRecursive(const Predicate& pred, PredicateType type) {
     if (pred.Type() == type) {
         return true;

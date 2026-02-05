@@ -1,4 +1,8 @@
-// src/Selector.cpp
+/**
+ * @file Selector.cpp
+ * @brief OESelect implementation - molecule-bound selector.
+ */
+
 #include "oeselect/Selector.h"
 #include "oeselect/Context.h"
 
@@ -6,6 +10,7 @@
 
 namespace OESel {
 
+/// PIMPL containing evaluation context and selection
 struct OESelect::Impl {
     std::unique_ptr<Context> ctx;
     OESelection sele;
