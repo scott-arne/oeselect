@@ -86,7 +86,7 @@ Verify Installation
    oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")
 
    # Select carbon atoms
-   carbons = select("elem C", mol)
+   carbons = select(mol, "elem C")
    print(f"Found {len(carbons)} carbon atoms")
 
 Building from Source (Python)

@@ -59,6 +59,8 @@ set(OESELECT_SOURCES
     src/Parser.cpp
     src/Predicate.cpp
     src/Tagger.cpp
+    src/ResidueSelector.cpp
+    src/CustomPredicates.cpp
 )
 
 add_library(oeselect ${OESELECT_SOURCES})

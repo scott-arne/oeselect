@@ -223,6 +223,174 @@ class UnsignedIntVector(object):
 
 # Register UnsignedIntVector in _oeselect:
 _oeselect.UnsignedIntVector_swigregister(UnsignedIntVector)
+class SelectorSet(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _oeselect.SelectorSet_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _oeselect.SelectorSet___nonzero__(self)
+
+    def __bool__(self):
+        return _oeselect.SelectorSet___bool__(self)
+
+    def __len__(self):
+        return _oeselect.SelectorSet___len__(self)
+
+    def append(self, x):
+        return _oeselect.SelectorSet_append(self, x)
+
+    def __contains__(self, x):
+        return _oeselect.SelectorSet___contains__(self, x)
+
+    def __getitem__(self, i):
+        return _oeselect.SelectorSet___getitem__(self, i)
+
+    def add(self, x):
+        return _oeselect.SelectorSet_add(self, x)
+
+    def discard(self, x):
+        return _oeselect.SelectorSet_discard(self, x)
+
+    def __init__(self, *args):
+        _oeselect.SelectorSet_swiginit(self, _oeselect.new_SelectorSet(*args))
+
+    def empty(self):
+        return _oeselect.SelectorSet_empty(self)
+
+    def size(self):
+        return _oeselect.SelectorSet_size(self)
+
+    def clear(self):
+        return _oeselect.SelectorSet_clear(self)
+
+    def swap(self, v):
+        return _oeselect.SelectorSet_swap(self, v)
+
+    def count(self, x):
+        return _oeselect.SelectorSet_count(self, x)
+
+    def begin(self):
+        return _oeselect.SelectorSet_begin(self)
+
+    def end(self):
+        return _oeselect.SelectorSet_end(self)
+
+    def rbegin(self):
+        return _oeselect.SelectorSet_rbegin(self)
+
+    def rend(self):
+        return _oeselect.SelectorSet_rend(self)
+
+    def erase(self, *args):
+        return _oeselect.SelectorSet_erase(self, *args)
+
+    def find(self, x):
+        return _oeselect.SelectorSet_find(self, x)
+
+    def lower_bound(self, x):
+        return _oeselect.SelectorSet_lower_bound(self, x)
+
+    def upper_bound(self, x):
+        return _oeselect.SelectorSet_upper_bound(self, x)
+
+    def equal_range(self, x):
+        return _oeselect.SelectorSet_equal_range(self, x)
+
+    def insert(self, __x):
+        return _oeselect.SelectorSet_insert(self, __x)
+    __swig_destroy__ = _oeselect.delete_SelectorSet
+
+# Register SelectorSet in _oeselect:
+_oeselect.SelectorSet_swigregister(SelectorSet)
+class StringSet(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _oeselect.StringSet_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _oeselect.StringSet___nonzero__(self)
+
+    def __bool__(self):
+        return _oeselect.StringSet___bool__(self)
+
+    def __len__(self):
+        return _oeselect.StringSet___len__(self)
+
+    def append(self, x):
+        return _oeselect.StringSet_append(self, x)
+
+    def __contains__(self, x):
+        return _oeselect.StringSet___contains__(self, x)
+
+    def __getitem__(self, i):
+        return _oeselect.StringSet___getitem__(self, i)
+
+    def add(self, x):
+        return _oeselect.StringSet_add(self, x)
+
+    def discard(self, x):
+        return _oeselect.StringSet_discard(self, x)
+
+    def __init__(self, *args):
+        _oeselect.StringSet_swiginit(self, _oeselect.new_StringSet(*args))
+
+    def empty(self):
+        return _oeselect.StringSet_empty(self)
+
+    def size(self):
+        return _oeselect.StringSet_size(self)
+
+    def clear(self):
+        return _oeselect.StringSet_clear(self)
+
+    def swap(self, v):
+        return _oeselect.StringSet_swap(self, v)
+
+    def count(self, x):
+        return _oeselect.StringSet_count(self, x)
+
+    def begin(self):
+        return _oeselect.StringSet_begin(self)
+
+    def end(self):
+        return _oeselect.StringSet_end(self)
+
+    def rbegin(self):
+        return _oeselect.StringSet_rbegin(self)
+
+    def rend(self):
+        return _oeselect.StringSet_rend(self)
+
+    def erase(self, *args):
+        return _oeselect.StringSet_erase(self, *args)
+
+    def find(self, x):
+        return _oeselect.StringSet_find(self, x)
+
+    def lower_bound(self, x):
+        return _oeselect.StringSet_lower_bound(self, x)
+
+    def upper_bound(self, x):
+        return _oeselect.StringSet_upper_bound(self, x)
+
+    def equal_range(self, x):
+        return _oeselect.StringSet_equal_range(self, x)
+
+    def insert(self, __x):
+        return _oeselect.StringSet_insert(self, __x)
+    __swig_destroy__ = _oeselect.delete_StringSet
+
+# Register StringSet in _oeselect:
+_oeselect.StringSet_swigregister(StringSet)
 OESELECT_VERSION_MAJOR = _oeselect.OESELECT_VERSION_MAJOR
 OESELECT_VERSION_MINOR = _oeselect.OESELECT_VERSION_MINOR
 OESELECT_VERSION_PATCH = _oeselect.OESELECT_VERSION_PATCH
@@ -304,18 +472,142 @@ class OESelection(object):
 
 # Register OESelection in _oeselect:
 _oeselect.OESelection_swigregister(OESelection)
+class OESelect(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
 
-def EvaluateSelection(selection_str, smiles):
-    return _oeselect.EvaluateSelection(selection_str, smiles)
+    def __init__(self, *args):
+        _oeselect.OESelect_swiginit(self, _oeselect.new_OESelect(*args))
+    __swig_destroy__ = _oeselect.delete_OESelect
 
-def CountSelection(selection_str, smiles):
-    return _oeselect.CountSelection(selection_str, smiles)
+    def __call__(self, atom):
+        return _oeselect.OESelect___call__(self, atom)
 
-def select(selection_str, mol):
+    def GetSelection(self):
+        return _oeselect.OESelect_GetSelection(self)
+
+    def __repr__(self):
+        return f"OESelect('{self.GetSelection().ToCanonical()}')"
+
+
+# Register OESelect in _oeselect:
+_oeselect.OESelect_swigregister(OESelect)
+class Selector(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+    name = property(_oeselect.Selector_name_get, _oeselect.Selector_name_set)
+    residue_number = property(_oeselect.Selector_residue_number_get, _oeselect.Selector_residue_number_set)
+    chain = property(_oeselect.Selector_chain_get, _oeselect.Selector_chain_set)
+    insert_code = property(_oeselect.Selector_insert_code_get, _oeselect.Selector_insert_code_set)
+
+    def __init__(self, *args):
+        _oeselect.Selector_swiginit(self, _oeselect.new_Selector(*args))
+
+    @staticmethod
+    def FromAtom(atom):
+        return _oeselect.Selector_FromAtom(atom)
+
+    @staticmethod
+    def FromString(selector_str):
+        return _oeselect.Selector_FromString(selector_str)
+
+    def ToString(self):
+        return _oeselect.Selector_ToString(self)
+
+    def __lt__(self, other):
+        return _oeselect.Selector___lt__(self, other)
+
+    def __gt__(self, other):
+        return _oeselect.Selector___gt__(self, other)
+
+    def __le__(self, other):
+        return _oeselect.Selector___le__(self, other)
+
+    def __ge__(self, other):
+        return _oeselect.Selector___ge__(self, other)
+
+    def __eq__(self, other):
+        return _oeselect.Selector___eq__(self, other)
+
+    def __ne__(self, other):
+        return _oeselect.Selector___ne__(self, other)
+
+    def __repr__(self):
+        return f"Selector('{self.ToString()}')"
+
+    def __str__(self):
+        return self.ToString()
+
+    def __hash__(self):
+        return hash((self.name, self.residue_number, self.chain, self.insert_code))
+
+    __swig_destroy__ = _oeselect.delete_Selector
+
+# Register Selector in _oeselect:
+_oeselect.Selector_swigregister(Selector)
+class OEResidueSelector(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+
+    def __init__(self, *args):
+        _oeselect.OEResidueSelector_swiginit(self, _oeselect.new_OEResidueSelector(*args))
+    __swig_destroy__ = _oeselect.delete_OEResidueSelector
+
+    def __call__(self, atom):
+        return _oeselect.OEResidueSelector___call__(self, atom)
+
+# Register OEResidueSelector in _oeselect:
+_oeselect.OEResidueSelector_swigregister(OEResidueSelector)
+class OEHasResidueName(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+
+    def __init__(self, *args):
+        _oeselect.OEHasResidueName_swiginit(self, _oeselect.new_OEHasResidueName(*args))
+    __swig_destroy__ = _oeselect.delete_OEHasResidueName
+
+    def __call__(self, atom):
+        return _oeselect.OEHasResidueName___call__(self, atom)
+
+# Register OEHasResidueName in _oeselect:
+_oeselect.OEHasResidueName_swigregister(OEHasResidueName)
+class OEHasAtomNameAdvanced(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+
+    def __init__(self, *args):
+        _oeselect.OEHasAtomNameAdvanced_swiginit(self, _oeselect.new_OEHasAtomNameAdvanced(*args))
+    __swig_destroy__ = _oeselect.delete_OEHasAtomNameAdvanced
+
+    def __call__(self, atom):
+        return _oeselect.OEHasAtomNameAdvanced___call__(self, atom)
+
+# Register OEHasAtomNameAdvanced in _oeselect:
+_oeselect.OEHasAtomNameAdvanced_swigregister(OEHasAtomNameAdvanced)
+
+def ParseSelectorSet(selector_str):
+    return _oeselect.ParseSelectorSet(selector_str)
+
+def MolToSelectorSet(mol):
+    return _oeselect.MolToSelectorSet(mol)
+
+def StrSelectorSet(mol, selection_str):
+    return _oeselect.StrSelectorSet(mol, selection_str)
+
+def GetSelectorString(atom):
+    return _oeselect.GetSelectorString(atom)
+
+def EvaluateSelection(mol, selection_str):
+    return _oeselect.EvaluateSelection(mol, selection_str)
+
+def CountSelection(mol, selection_str):
+    return _oeselect.CountSelection(mol, selection_str)
+
+def select(mol, selection_str):
     """Evaluate a selection string on an OpenEye molecule.
 
-    :param selection_str: PyMOL-style selection string (e.g., "name CA", "protein and chain A").
     :param mol: An OpenEye OEMolBase object (OEMol, OEGraphMol, etc.).
+    :param selection_str: PyMOL-style selection string (e.g., "name CA", "protein and chain A").
     :returns: List of atom indices that match the selection.
 
     Example::
@@ -327,29 +619,25 @@ def select(selection_str, mol):
         oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")  # Aspirin
 
 # Select all carbon atoms
-        carbon_indices = select("elem C", mol)
+        carbon_indices = select(mol, "elem C")
 
 # Select backbone atoms in chain A
-        bb_indices = select("backbone and chain A", mol)
+        bb_indices = select(mol, "backbone and chain A")
     """
-    from openeye import oechem
-    smiles = oechem.OEMolToSmiles(mol)
-    return list(EvaluateSelection(selection_str, smiles))
+    return list(EvaluateSelection(mol, selection_str))
 
-def count(selection_str, mol):
+def count(mol, selection_str):
     """Count atoms matching a selection in an OpenEye molecule.
 
-    :param selection_str: PyMOL-style selection string.
     :param mol: An OpenEye OEMolBase object.
+    :param selection_str: PyMOL-style selection string.
     :returns: Number of atoms matching the selection.
 
     Example::
 
-        num_carbons = count("elem C", mol)
+        num_carbons = count(mol, "elem C")
     """
-    from openeye import oechem
-    smiles = oechem.OEMolToSmiles(mol)
-    return CountSelection(selection_str, smiles)
+    return CountSelection(mol, selection_str)
 
 def parse(selection_str):
     """Parse a selection string and return an OESelection object.
@@ -364,6 +652,56 @@ def parse(selection_str):
         print(sele.ToCanonical())  # Normalized form
     """
     return OESelection.Parse(selection_str)
+
+def str_selector_set(mol, selection_str):
+    """Extract unique residue selector strings for atoms matching a selection.
+
+    :param mol: An OpenEye OEMolBase object.
+    :param selection_str: PyMOL-style selection string.
+    :returns: Set of unique selector strings in "NAME:NUMBER:ICODE:CHAIN" format.
+
+    Example::
+
+        selectors = str_selector_set(mol, "protein")
+    """
+    return StrSelectorSet(mol, selection_str)
+
+def selector_set(selector_str):
+    """Parse a selector string into a set of Selector objects.
+
+    :param selector_str: Comma/semicolon/newline-separated selector strings.
+    :returns: Set of Selector objects.
+
+    Example::
+
+        sels = selector_set("ALA:123: :A,GLY:124: :A")
+    """
+    return ParseSelectorSet(selector_str)
+
+def mol_to_selector_set(mol):
+    """Extract unique Selector objects from all atoms in a molecule.
+
+    :param mol: An OpenEye OEMolBase object.
+    :returns: Set of Selector objects for all unique residues.
+
+    Example::
+
+        selectors = mol_to_selector_set(mol)
+    """
+    return MolToSelectorSet(mol)
+
+def get_selector_string(atom):
+    """Get the selector string for an atom.
+
+    :param atom: An OpenEye OEAtomBase object.
+    :returns: Selector string in "NAME:NUMBER:ICODE:CHAIN" format.
+
+    Example::
+
+        for atom in mol.GetAtoms():
+            print(get_selector_string(atom))
+    """
+    return GetSelectorString(atom)
 
 __version__ = "1.0.0"
 

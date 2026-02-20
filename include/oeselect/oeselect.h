@@ -48,5 +48,7 @@ class Tagger;
 #include "oeselect/Context.h"
 #include "oeselect/Parser.h"
 #include "oeselect/Tagger.h"
+#include "oeselect/ResidueSelector.h"
+#include "oeselect/CustomPredicates.h"
 
 #endif  // OESELECT_OESELECT_H

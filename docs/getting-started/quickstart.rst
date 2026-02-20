@@ -68,15 +68,15 @@ Basic Selection
    oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")  # Aspirin
 
    # Select atoms by element
-   carbon_indices = select("elem C", mol)
+   carbon_indices = select(mol, "elem C")
    print(f"Carbon atoms: {carbon_indices}")
 
    # Count matching atoms
-   num_oxygens = count("elem O", mol)
+   num_oxygens = count(mol, "elem O")
    print(f"Number of oxygens: {num_oxygens}")
 
    # Complex selections
-   heavy_atoms = select("heavy and not elem O", mol)
+   heavy_atoms = select(mol, "heavy and not elem O")
 
 Selection Parsing
 ^^^^^^^^^^^^^^^^^
@@ -104,7 +104,7 @@ Working with Proteins
 .. code-block:: python
 
    from openeye import oechem
-   from oeselect import select, count
+   from oeselect import OESelect, select, count
 
    # Load a protein structure
    mol = oechem.OEGraphMol()
@@ -112,14 +112,20 @@ Working with Proteins
    oechem.OEReadMolecule(ifs, mol)
 
    # Select backbone atoms in chain A
-   bb_chain_a = select("backbone and chain A", mol)
+   bb_chain_a = select(mol, "backbone and chain A")
 
    # Select all non-water heavy atoms
-   heavy_non_water = select("heavy and not water", mol)
+   heavy_non_water = select(mol, "heavy and not water")
 
    # Count residues in helix
-   helix_count = count("helix and name CA", mol)
+   helix_count = count(mol, "helix and name CA")
    print(f"CA atoms in helix: {helix_count}")
+
+   # Use OESelect as a predicate with OpenEye functions
+   pred = OESelect(mol, "protein and chain A")
+   for atom in mol.GetAtoms(pred):
+       print(atom.GetName())
+   num_selected = oechem.OECount(mol, pred)
 
 C++ Quick Start
 ---------------
