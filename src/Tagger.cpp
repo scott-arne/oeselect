@@ -115,7 +115,7 @@ void Tagger::TagMolecule(OEChem::OEMolBase& mol) {
 
     // Iterate all atoms and assign component flags based on residue name
     for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
-        const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&(*atom));
+        const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&*atom);
         const std::string resname = res.GetName();
 
         ComponentFlag flag = ClassifyResidue(resname);

@@ -14,9 +14,9 @@ namespace {
 
 /// Trim leading and trailing whitespace from a string.
 std::string TrimWhitespace(const std::string& str) {
-    auto start = str.find_first_not_of(" \t");
+    const auto start = str.find_first_not_of(" \t");
     if (start == std::string::npos) return "";
-    auto end = str.find_last_not_of(" \t");
+    const auto end = str.find_last_not_of(" \t");
     return str.substr(start, end - start + 1);
 }
 
@@ -24,14 +24,14 @@ std::string TrimWhitespace(const std::string& str) {
 std::string ToLower(const std::string& str) {
     std::string result = str;
     std::transform(result.begin(), result.end(), result.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+                   [](const unsigned char c) { return std::tolower(c); });
     return result;
 }
 
 /// Normalize a name based on case and whitespace settings.
 std::string NormalizeName(const std::string& name,
-                          bool case_sensitive,
-                          bool whitespace) {
+                          const bool case_sensitive,
+                          const bool whitespace) {
     std::string result = name;
     if (!case_sensitive) {
         result = ToLower(result);
@@ -51,8 +51,8 @@ namespace OESel {
 // ============================================================================
 
 OEHasResidueName::OEHasResidueName(const std::string& residue_name,
-                                   bool case_sensitive,
-                                   bool whitespace)
+                                   const bool case_sensitive,
+                                   const bool whitespace)
     : residue_name_(NormalizeName(residue_name, case_sensitive, whitespace)),
       case_sensitive_(case_sensitive),
       whitespace_(whitespace) {}
@@ -66,7 +66,7 @@ OEHasResidueName::~OEHasResidueName() = default;
 
 bool OEHasResidueName::operator()(const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
-    std::string resname = NormalizeName(res.GetName(), case_sensitive_, whitespace_);
+    const std::string resname = NormalizeName(res.GetName(), case_sensitive_, whitespace_);
     return residue_name_ == resname;
 }
 
@@ -80,8 +80,8 @@ OEHasResidueName::CreateCopy() const {
 // ============================================================================
 
 OEHasAtomNameAdvanced::OEHasAtomNameAdvanced(const std::string& atom_name,
-                                             bool case_sensitive,
-                                             bool whitespace)
+                                             const bool case_sensitive,
+                                             const bool whitespace)
     : atom_name_(NormalizeName(atom_name, case_sensitive, whitespace)),
       case_sensitive_(case_sensitive),
       whitespace_(whitespace) {}
@@ -94,7 +94,7 @@ OEHasAtomNameAdvanced::OEHasAtomNameAdvanced(const OEHasAtomNameAdvanced& other)
 OEHasAtomNameAdvanced::~OEHasAtomNameAdvanced() = default;
 
 bool OEHasAtomNameAdvanced::operator()(const OEChem::OEAtomBase& atom) const {
-    std::string name = NormalizeName(atom.GetName(), case_sensitive_, whitespace_);
+    const std::string name = NormalizeName(atom.GetName(), case_sensitive_, whitespace_);
     return atom_name_ == name;
 }
 

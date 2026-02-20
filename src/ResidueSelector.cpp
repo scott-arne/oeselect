@@ -21,7 +21,7 @@ namespace OESel {
 // ============================================================================
 
 Selector Selector::FromAtom(const OEChem::OEAtomBase& atom) {
-    OEChem::OEResidue res = OEChem::OEAtomGetResidue(&atom);
+    const OEChem::OEResidue res = OEChem::OEAtomGetResidue(&atom);
     return FromResidue(res);
 }
 
@@ -51,13 +51,11 @@ Selector Selector::FromString(const std::string& selector_str) {
     // Trim whitespace from parts
     for (auto& p : parts) {
         // Trim leading whitespace
-        auto start = p.find_first_not_of(" \t");
-        if (start != std::string::npos) {
+        if (auto start = p.find_first_not_of(" \t"); start != std::string::npos) {
             p = p.substr(start);
         }
         // Trim trailing whitespace
-        auto end = p.find_last_not_of(" \t");
-        if (end != std::string::npos) {
+        if (auto end = p.find_last_not_of(" \t"); end != std::string::npos) {
             p = p.substr(0, end + 1);
         }
     }
@@ -69,7 +67,7 @@ Selector Selector::FromString(const std::string& selector_str) {
         throw SelectionError("Invalid residue number in selector: " + parts[1]);
     }
 
-    return Selector(parts[0], residue_number, parts[3], parts[2]);
+    return {parts[0], residue_number, parts[3], parts[2]};
 }
 
 std::string Selector::ToString() const {
@@ -119,7 +117,7 @@ OEResidueSelector::OEResidueSelector(const OEResidueSelector& other)
 OEResidueSelector::~OEResidueSelector() = default;
 
 bool OEResidueSelector::operator()(const OEChem::OEAtomBase& atom) const {
-    Selector sel = Selector::FromAtom(atom);
+    const Selector sel = Selector::FromAtom(atom);
     return selectors_.count(sel) > 0;
 }
 
@@ -139,9 +137,7 @@ std::set<Selector> ParseSelectorSet(const std::string& selector_str) {
 
     std::sregex_token_iterator it(selector_str.begin(), selector_str.end(),
                                   delimiter, -1);
-    std::sregex_token_iterator end;
-
-    for (; it != end; ++it) {
+    for (std::sregex_token_iterator end; it != end; ++it) {
         std::string token = it->str();
         // Trim whitespace
         auto start = token.find_first_not_of(" \t\r\n");
@@ -158,7 +154,7 @@ std::set<Selector> ParseSelectorSet(const std::string& selector_str) {
 
 std::set<Selector> MolToSelectorSet(const OEChem::OEMolBase& mol) {
     std::set<Selector> result;
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         result.insert(Selector::FromAtom(*atom));
     }
     return result;
@@ -166,11 +162,11 @@ std::set<Selector> MolToSelectorSet(const OEChem::OEMolBase& mol) {
 
 std::set<std::string> StrSelectorSet(
         OEChem::OEMolBase& mol, const std::string& selection_str) {
-    OESelection sele = OESelection::Parse(selection_str);
-    OESelect selector(mol, sele);
+    const OESelection sele = OESelection::Parse(selection_str);
+    const OESelect selector(mol, sele);
 
     std::set<std::string> result;
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         if (selector(*atom)) {
             result.insert(GetSelectorString(*atom));
         }

@@ -25,7 +25,7 @@ struct MoleculePointCloud {
     std::vector<float> coords;           ///< Flat array: x0,y0,z0,x1,y1,z1,...
     std::vector<unsigned int> atom_indices;  ///< Original atom indices
 
-    explicit MoleculePointCloud(OEChem::OEMolBase& mol) {
+    explicit MoleculePointCloud(const OEChem::OEMolBase& mol) {
         const size_t n = mol.NumAtoms();
         coords.reserve(n * 3);
         atom_indices.reserve(n);
@@ -82,7 +82,8 @@ SpatialIndex::SpatialIndex(OEChem::OEMolBase& mol)
 
 SpatialIndex::~SpatialIndex() = default;
 
-std::vector<unsigned int> SpatialIndex::FindWithinRadius(const float x, const float y, const float z, const float radius) const {
+std::vector<unsigned int> SpatialIndex::FindWithinRadius(
+        const float x, const float y, const float z, const float radius) const {
     std::vector<unsigned int> result;
     if (!pimpl_->tree) return result;
 

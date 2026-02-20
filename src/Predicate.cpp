@@ -467,7 +467,7 @@ const std::vector<bool>& AroundPredicate::GetAroundMask(Context& ctx) const {
 
     const OEChem::OEMolBase& mol = ctx.Mol();
     const size_t num_atoms = mol.NumAtoms();
-    std::vector<bool> mask(num_atoms, false);
+    std::vector mask(num_atoms, false);
 
     // Get spatial index
     const SpatialIndex& index = ctx.GetSpatialIndex();
@@ -514,7 +514,7 @@ const std::vector<bool>& XAroundPredicate::GetAroundMask(Context& ctx) const {
 
     const OEChem::OEMolBase& mol = ctx.Mol();
     const size_t num_atoms = mol.NumAtoms();
-    std::vector<bool> mask(num_atoms, false);
+    std::vector mask(num_atoms, false);
 
     // Get spatial index
     const SpatialIndex& index = ctx.GetSpatialIndex();
@@ -566,7 +566,7 @@ const std::vector<bool>& BeyondPredicate::GetAroundMask(Context& ctx) const {
 
     const OEChem::OEMolBase& mol = ctx.Mol();
     const size_t num_atoms = mol.NumAtoms();
-    std::vector<bool> mask(num_atoms, false);
+    std::vector mask(num_atoms, false);
 
     // Get spatial index
     const SpatialIndex& index = ctx.GetSpatialIndex();

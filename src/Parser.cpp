@@ -312,16 +312,16 @@ struct ParserState {
 class TruePredicateImpl : public Predicate {
 public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return true; }
-    std::string ToCanonical() const override { return "all"; }
-    PredicateType Type() const override { return PredicateType::True; }
+    [[nodiscard]] std::string ToCanonical() const override { return "all"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::True; }
 };
 
 /// Always-false predicate for 'none' keyword
 class FalsePredicateImpl : public Predicate {
 public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return false; }
-    std::string ToCanonical() const override { return "none"; }
-    PredicateType Type() const override { return PredicateType::False; }
+    [[nodiscard]] std::string ToCanonical() const override { return "none"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::False; }
 };
 
 // ============================================================================
@@ -710,8 +710,7 @@ template<>
 struct Action<Grammar::macro_resi> {
     template<typename ActionInput>
     static void apply(const ActionInput& in, ParserState& state) {
-        std::string s = in.string();
-        if (!s.empty()) {
+        if (std::string s = in.string(); !s.empty()) {
             state.macro_resi = std::stoi(s);
         }
     }
@@ -863,9 +862,8 @@ template<>
 struct Action<Grammar::not_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        auto& ctx = state.currentContext();
-        if (ctx.not_count > 0) {
-            int not_count = ctx.not_count;
+        if (auto& ctx = state.currentContext(); ctx.not_count > 0) {
+            const int not_count = ctx.not_count;
             ctx.not_count = 0;
 
             if (!state.operands.empty()) {
@@ -883,12 +881,11 @@ template<>
 struct Action<Grammar::and_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        auto& ctx = state.currentContext();
-        if (ctx.and_count > 0) {
-            int and_count = ctx.and_count;
+        if (auto& ctx = state.currentContext(); ctx.and_count > 0) {
+            const int and_count = ctx.and_count;
             ctx.and_count = 0;
 
-            if (state.operands.size() >= static_cast<size_t>(and_count + 1)) {
+            if (state.operands.size() >= static_cast<size_t>(and_count) + 1) {
                 std::vector<Predicate::Ptr> children;
                 for (int i = 0; i <= and_count; ++i) {
                     children.push_back(state.popOperand());
@@ -905,12 +902,11 @@ template<>
 struct Action<Grammar::or_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        auto& ctx = state.currentContext();
-        if (ctx.or_count > 0) {
-            int or_count = ctx.or_count;
+        if (auto& ctx = state.currentContext(); ctx.or_count > 0) {
+            const int or_count = ctx.or_count;
             ctx.or_count = 0;
 
-            if (state.operands.size() >= static_cast<size_t>(or_count + 1)) {
+            if (state.operands.size() >= static_cast<size_t>(or_count) + 1) {
                 std::vector<Predicate::Ptr> children;
                 for (int i = 0; i <= or_count; ++i) {
                     children.push_back(state.popOperand());
@@ -927,12 +923,11 @@ template<>
 struct Action<Grammar::xor_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        auto& ctx = state.currentContext();
-        if (ctx.xor_count > 0) {
-            int xor_count = ctx.xor_count;
+        if (auto& ctx = state.currentContext(); ctx.xor_count > 0) {
+            const int xor_count = ctx.xor_count;
             ctx.xor_count = 0;
 
-            if (state.operands.size() >= static_cast<size_t>(xor_count + 1)) {
+            if (state.operands.size() >= static_cast<size_t>(xor_count) + 1) {
                 std::vector<Predicate::Ptr> children;
                 for (int i = 0; i <= xor_count; ++i) {
                     children.push_back(state.popOperand());
