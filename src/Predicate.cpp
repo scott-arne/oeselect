@@ -29,7 +29,6 @@
 #include <oechem.h>
 #include <fnmatch.h>
 #include <algorithm>
-#include <cctype>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -44,7 +43,7 @@ NamePredicate::NamePredicate(std::string pattern)
                     pattern_.find('?') != std::string::npos) {}
 
 bool NamePredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
-    std::string name = atom.GetName();
+    const std::string name = atom.GetName();
 
     if (has_wildcard_) {
         return fnmatch(pattern_.c_str(), name.c_str(), 0) == 0;
@@ -174,7 +173,7 @@ ResnPredicate::ResnPredicate(std::string pattern)
 bool ResnPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
 
-    std::string resn = res.GetName();
+    const std::string resn = res.GetName();
     if (has_wildcard_) {
         return fnmatch(pattern_.c_str(), resn.c_str(), 0) == 0;
     }
@@ -187,16 +186,16 @@ std::string ResnPredicate::ToCanonical() const {
 
 // ResiPredicate implementation
 
-ResiPredicate::ResiPredicate(int value, Op op)
+ResiPredicate::ResiPredicate(const int value, const Op op)
     : value_(value), end_value_(0), op_(op) {}
 
-ResiPredicate::ResiPredicate(int start, int end)
+ResiPredicate::ResiPredicate(const int start, const int end)
     : value_(start), end_value_(end), op_(Op::Range) {}
 
 bool ResiPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
 
-    int resi = res.GetResidueNumber();
+    const int resi = res.GetResidueNumber();
     switch (op_) {
         case Op::Eq:    return resi == value_;
         case Op::Lt:    return resi < value_;
@@ -228,7 +227,7 @@ ChainPredicate::ChainPredicate(std::string chain_id)
 bool ChainPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
 
-    char chain = res.GetChainID();
+    const char chain = res.GetChainID();
     return chain_id_.size() == 1 && chain == chain_id_[0];
 }
 
@@ -251,7 +250,7 @@ std::string NormalizeElement(const std::string& elem) {
 }
 }  // namespace
 
-ElemPredicate::ElemPredicate(std::string element)
+ElemPredicate::ElemPredicate(const std::string& element)
     : atomic_num_(OEChem::OEGetAtomicNum(element.c_str()))
     , element_(NormalizeElement(element)) {}
 
@@ -265,14 +264,14 @@ std::string ElemPredicate::ToCanonical() const {
 
 // IndexPredicate implementation
 
-IndexPredicate::IndexPredicate(unsigned int value, Op op)
+IndexPredicate::IndexPredicate(const unsigned int value, const Op op)
     : value_(value), end_value_(0), op_(op) {}
 
-IndexPredicate::IndexPredicate(unsigned int start, unsigned int end)
+IndexPredicate::IndexPredicate(const unsigned int start, const unsigned int end)
     : value_(start), end_value_(end), op_(Op::Range) {}
 
 bool IndexPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
-    unsigned int idx = atom.GetIdx();
+    const unsigned int idx = atom.GetIdx();
     switch (op_) {
         case Op::Eq:    return idx == value_;
         case Op::Lt:    return idx < value_;
@@ -332,9 +331,8 @@ bool OrganicPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) co
     if (atom.GetAtomicNum() != 6) {  // Not carbon itself
         // Check if bonded to carbon
         bool bonded_to_carbon = false;
-        for (OESystem::OEIter<OEChem::OEBondBase> bond = atom.GetBonds(); bond; ++bond) {
-            const OEChem::OEAtomBase* nbr = bond->GetNbr(&atom);
-            if (nbr->GetAtomicNum() == 6) {
+        for (OESystem::OEIter bond = atom.GetBonds(); bond; ++bond) {
+            if (const auto* nbr = bond->GetNbr(&atom); nbr->GetAtomicNum() == 6) {
                 bonded_to_carbon = true;
                 break;
             }
@@ -355,7 +353,7 @@ bool BackbonePredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) c
     Tagger::TagMolecule(ctx.Mol());
     if (!Tagger::HasComponent(atom, ComponentFlag::Protein)) return false;
 
-    std::string name = atom.GetName();
+    const std::string name = atom.GetName();
     return name == "N" || name == "CA" || name == "C" || name == "O";
 }
 
@@ -365,7 +363,7 @@ bool SidechainPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) 
     Tagger::TagMolecule(ctx.Mol());
     if (!Tagger::HasComponent(atom, ComponentFlag::Protein)) return false;
 
-    std::string name = atom.GetName();
+    const std::string name = atom.GetName();
     // Exclude backbone atoms
     if (name == "N" || name == "CA" || name == "C" || name == "O") return false;
     // Also exclude OXT (terminal oxygen)
@@ -376,11 +374,11 @@ bool SidechainPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) 
 // MetalPredicate implementation - metal elements
 
 bool MetalPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
-    int atomicNum = atom.GetAtomicNum();
+    const auto atomicNum = static_cast<int>(atom.GetAtomicNum());
     // Common metals in biomolecular structures
     // Li(3), Na(11), Mg(12), Al(13), K(19), Ca(20), Sc(21)...Zn(30),
     // Rb(37)...Cd(48), Cs(55)...Hg(80)
-    return (atomicNum == 3) ||   // Li
+    return atomicNum == 3 ||   // Li
            (atomicNum >= 11 && atomicNum <= 13) ||  // Na, Mg, Al
            (atomicNum >= 19 && atomicNum <= 30) ||  // K through Zn
            (atomicNum >= 37 && atomicNum <= 48) ||  // Rb through Cd
@@ -405,10 +403,10 @@ bool PolarHydrogenPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) 
     if (atom.GetAtomicNum() != 1) return false;  // Must be hydrogen
 
     // Check what this hydrogen is bonded to
-    for (OESystem::OEIter<OEChem::OEBondBase> bond = atom.GetBonds(); bond; ++bond) {
+    for (OESystem::OEIter bond = atom.GetBonds(); bond; ++bond) {
         const OEChem::OEAtomBase* nbr = bond->GetNbr(&atom);
-        int nbrAtomicNum = nbr->GetAtomicNum();
-        if (nbrAtomicNum == 7 || nbrAtomicNum == 8 || nbrAtomicNum == 16) {
+        if (const auto nbrAtomicNum = static_cast<int>(nbr->GetAtomicNum());
+            nbrAtomicNum == 7 || nbrAtomicNum == 8 || nbrAtomicNum == 16) {
             return true;  // Bonded to N, O, or S
         }
     }
@@ -421,11 +419,11 @@ bool NonpolarHydrogenPredicate::Evaluate(Context&, const OEChem::OEAtomBase& ato
     if (atom.GetAtomicNum() != 1) return false;  // Must be hydrogen
 
     // Check what this hydrogen is bonded to
-    for (OESystem::OEIter<OEChem::OEBondBase> bond = atom.GetBonds(); bond; ++bond) {
+    for (OESystem::OEIter bond = atom.GetBonds(); bond; ++bond) {
         const OEChem::OEAtomBase* nbr = bond->GetNbr(&atom);
-        int nbrAtomicNum = nbr->GetAtomicNum();
         // If bonded to N, O, or S, it's polar
-        if (nbrAtomicNum == 7 || nbrAtomicNum == 8 || nbrAtomicNum == 16) {
+        if (const auto nbrAtomicNum = static_cast<int>(nbr->GetAtomicNum());
+            nbrAtomicNum == 7 || nbrAtomicNum == 8 || nbrAtomicNum == 16) {
             return false;
         }
     }
@@ -438,14 +436,14 @@ bool NonpolarHydrogenPredicate::Evaluate(Context&, const OEChem::OEAtomBase& ato
 
 namespace {
 // Helper to format radius for canonical output
-std::string FormatRadius(float radius) {
+std::string FormatRadius(const float radius) {
     std::ostringstream oss;
     oss << std::setprecision(6) << std::noshowpoint << radius;
     std::string result = oss.str();
     // Remove trailing zeros after decimal point
     if (result.find('.') != std::string::npos) {
-        size_t last = result.find_last_not_of('0');
-        if (last != std::string::npos && result[last] == '.') {
+        if (const auto last = result.find_last_not_of('0');
+            last != std::string::npos && result[last] == '.') {
             result = result.substr(0, last);  // Remove decimal point if no decimals
         } else {
             result = result.substr(0, last + 1);
@@ -457,29 +455,29 @@ std::string FormatRadius(float radius) {
 
 // AroundPredicate implementation
 
-AroundPredicate::AroundPredicate(float radius, Ptr reference)
+AroundPredicate::AroundPredicate(const float radius, Ptr reference)
     : radius_(radius), reference_(std::move(reference)) {}
 
 const std::vector<bool>& AroundPredicate::GetAroundMask(Context& ctx) const {
-    std::string cache_key = "around_" + FormatRadius(radius_) + "_" + reference_->ToCanonical();
+    const std::string cache_key = "around_" + FormatRadius(radius_) + "_" + reference_->ToCanonical();
 
     if (ctx.HasAroundCache(cache_key)) {
         return ctx.GetAroundCache(cache_key);
     }
 
-    OEChem::OEMolBase& mol = ctx.Mol();
-    size_t num_atoms = mol.NumAtoms();
+    const OEChem::OEMolBase& mol = ctx.Mol();
+    const size_t num_atoms = mol.NumAtoms();
     std::vector<bool> mask(num_atoms, false);
 
     // Get spatial index
-    SpatialIndex& index = ctx.GetSpatialIndex();
+    const SpatialIndex& index = ctx.GetSpatialIndex();
 
     // Find all reference atoms and collect nearby atoms
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         if (reference_->Evaluate(ctx, *atom)) {
             // This is a reference atom - find all atoms within radius
-            auto nearby = index.FindWithinRadius(*atom, radius_);
-            for (unsigned int idx : nearby) {
+            const auto nearby = index.FindWithinRadius(*atom, radius_);
+            for (const unsigned int idx : nearby) {
                 if (idx < mask.size()) {
                     mask[idx] = true;
                 }
@@ -493,7 +491,7 @@ const std::vector<bool>& AroundPredicate::GetAroundMask(Context& ctx) const {
 
 bool AroundPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     const auto& mask = GetAroundMask(ctx);
-    unsigned int idx = atom.GetIdx();
+    const unsigned int idx = atom.GetIdx();
     return idx < mask.size() && mask[idx];
 }
 
@@ -503,30 +501,30 @@ std::string AroundPredicate::ToCanonical() const {
 
 // XAroundPredicate implementation
 
-XAroundPredicate::XAroundPredicate(float radius, Ptr reference)
+XAroundPredicate::XAroundPredicate(const float radius, Ptr reference)
     : radius_(radius), reference_(std::move(reference)) {}
 
 const std::vector<bool>& XAroundPredicate::GetAroundMask(Context& ctx) const {
     // Use same cache key format as AroundPredicate since it's the same computation
-    std::string cache_key = "around_" + FormatRadius(radius_) + "_" + reference_->ToCanonical();
+    const std::string cache_key = "around_" + FormatRadius(radius_) + "_" + reference_->ToCanonical();
 
     if (ctx.HasAroundCache(cache_key)) {
         return ctx.GetAroundCache(cache_key);
     }
 
-    OEChem::OEMolBase& mol = ctx.Mol();
-    size_t num_atoms = mol.NumAtoms();
+    const OEChem::OEMolBase& mol = ctx.Mol();
+    const size_t num_atoms = mol.NumAtoms();
     std::vector<bool> mask(num_atoms, false);
 
     // Get spatial index
-    SpatialIndex& index = ctx.GetSpatialIndex();
+    const SpatialIndex& index = ctx.GetSpatialIndex();
 
     // Find all reference atoms and collect nearby atoms
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         if (reference_->Evaluate(ctx, *atom)) {
             // This is a reference atom - find all atoms within radius
-            auto nearby = index.FindWithinRadius(*atom, radius_);
-            for (unsigned int idx : nearby) {
+            const auto nearby = index.FindWithinRadius(*atom, radius_);
+            for (const unsigned int idx : nearby) {
                 if (idx < mask.size()) {
                     mask[idx] = true;
                 }
@@ -545,7 +543,7 @@ bool XAroundPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) co
     }
     // Then check if it's within radius
     const auto& mask = GetAroundMask(ctx);
-    unsigned int idx = atom.GetIdx();
+    const unsigned int idx = atom.GetIdx();
     return idx < mask.size() && mask[idx];
 }
 
@@ -555,30 +553,30 @@ std::string XAroundPredicate::ToCanonical() const {
 
 // BeyondPredicate implementation
 
-BeyondPredicate::BeyondPredicate(float radius, Ptr reference)
+BeyondPredicate::BeyondPredicate(const float radius, Ptr reference)
     : radius_(radius), reference_(std::move(reference)) {}
 
 const std::vector<bool>& BeyondPredicate::GetAroundMask(Context& ctx) const {
     // Use the same cache as around - we just interpret it differently
-    std::string cache_key = "around_" + FormatRadius(radius_) + "_" + reference_->ToCanonical();
+    const std::string cache_key = "around_" + FormatRadius(radius_) + "_" + reference_->ToCanonical();
 
     if (ctx.HasAroundCache(cache_key)) {
         return ctx.GetAroundCache(cache_key);
     }
 
-    OEChem::OEMolBase& mol = ctx.Mol();
-    size_t num_atoms = mol.NumAtoms();
+    const OEChem::OEMolBase& mol = ctx.Mol();
+    const size_t num_atoms = mol.NumAtoms();
     std::vector<bool> mask(num_atoms, false);
 
     // Get spatial index
-    SpatialIndex& index = ctx.GetSpatialIndex();
+    const SpatialIndex& index = ctx.GetSpatialIndex();
 
     // Find all reference atoms and collect nearby atoms
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         if (reference_->Evaluate(ctx, *atom)) {
             // This is a reference atom - find all atoms within radius
-            auto nearby = index.FindWithinRadius(*atom, radius_);
-            for (unsigned int idx : nearby) {
+            const auto nearby = index.FindWithinRadius(*atom, radius_);
+            for (const unsigned int idx : nearby) {
                 if (idx < mask.size()) {
                     mask[idx] = true;
                 }
@@ -593,7 +591,7 @@ const std::vector<bool>& BeyondPredicate::GetAroundMask(Context& ctx) const {
 bool BeyondPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     // Beyond is the inverse of around - atom is beyond if it's NOT in the around mask
     const auto& mask = GetAroundMask(ctx);
-    unsigned int idx = atom.GetIdx();
+    const unsigned int idx = atom.GetIdx();
     // If idx is out of range, consider it beyond (shouldn't happen normally)
     if (idx >= mask.size()) {
         return true;
@@ -629,10 +627,10 @@ struct ResidueKey {
 struct ResidueKeyHash {
     size_t operator()(const ResidueKey& k) const {
         // Combine hash of all components
-        size_t h1 = std::hash<char>{}(k.chain_id);
-        size_t h2 = std::hash<int>{}(k.residue_number);
-        size_t h3 = std::hash<char>{}(k.insertion_code);
-        return h1 ^ (h2 << 1) ^ (h3 << 2);
+        const size_t h1 = std::hash<char>{}(k.chain_id);
+        const size_t h2 = std::hash<int>{}(k.residue_number);
+        const size_t h3 = std::hash<char>{}(k.insertion_code);
+        return h1 ^ h2 << 1 ^ h3 << 2;
     }
 };
 
@@ -646,18 +644,18 @@ ByResPredicate::ByResPredicate(Ptr child)
     : child_(std::move(child)) {}
 
 const std::unordered_set<unsigned int>& ByResPredicate::GetMatchingResidues(Context& ctx) const {
-    std::string cache_key = "byres_" + child_->ToCanonical();
+    const std::string cache_key = "byres_" + child_->ToCanonical();
 
     // Check if already cached
     if (ctx.HasResidueCache(cache_key)) {
         return ctx.GetResidueAtoms(cache_key);
     }
 
-    OEChem::OEMolBase& mol = ctx.Mol();
+    const OEChem::OEMolBase& mol = ctx.Mol();
 
     // First pass: find all residue keys that have at least one matching atom
     std::unordered_set<ResidueKey, ResidueKeyHash> matching_residue_keys;
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         if (child_->Evaluate(ctx, *atom)) {
             // This atom matches - get its residue key
             ResidueKey key = GetResidueKey(*atom);
@@ -667,9 +665,8 @@ const std::unordered_set<unsigned int>& ByResPredicate::GetMatchingResidues(Cont
 
     // Second pass: collect all atom indices that belong to matching residues
     std::unordered_set<unsigned int> matching_atom_indices;
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        ResidueKey key = GetResidueKey(*atom);
-        if (matching_residue_keys.count(key) > 0) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
+        if (const auto key = GetResidueKey(*atom); matching_residue_keys.count(key) > 0) {
             matching_atom_indices.insert(atom->GetIdx());
         }
     }
@@ -680,7 +677,7 @@ const std::unordered_set<unsigned int>& ByResPredicate::GetMatchingResidues(Cont
 
 bool ByResPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     const auto& matching = GetMatchingResidues(ctx);
-    unsigned int idx = atom.GetIdx();
+    const unsigned int idx = atom.GetIdx();
     return matching.count(idx) > 0;
 }
 
@@ -694,20 +691,20 @@ ByChainPredicate::ByChainPredicate(Ptr child)
     : child_(std::move(child)) {}
 
 const std::unordered_set<unsigned int>& ByChainPredicate::GetMatchingChainAtoms(Context& ctx) const {
-    std::string cache_key = "bychain_" + child_->ToCanonical();
+    const std::string cache_key = "bychain_" + child_->ToCanonical();
 
     // Check if already cached
     if (ctx.HasChainCache(cache_key)) {
         return ctx.GetChainAtoms(cache_key);
     }
 
-    OEChem::OEMolBase& mol = ctx.Mol();
+    const OEChem::OEMolBase& mol = ctx.Mol();
 
     // First pass: find all chain IDs that have at least one matching atom
     std::unordered_set<char> matching_chains;
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         if (child_->Evaluate(ctx, *atom)) {
-            const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&(*atom));
+            const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&*atom);
             char chain_id = res.GetChainID();
             matching_chains.insert(chain_id);
         }
@@ -715,10 +712,9 @@ const std::unordered_set<unsigned int>& ByChainPredicate::GetMatchingChainAtoms(
 
     // Second pass: collect all atom indices that belong to matching chains
     std::unordered_set<unsigned int> matching_atom_indices;
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&(*atom));
-        char chain_id = res.GetChainID();
-        if (matching_chains.count(chain_id) > 0) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
+        const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&*atom);
+        if (const auto chain_id = res.GetChainID(); matching_chains.count(chain_id) > 0) {
             matching_atom_indices.insert(atom->GetIdx());
         }
     }
@@ -729,7 +725,7 @@ const std::unordered_set<unsigned int>& ByChainPredicate::GetMatchingChainAtoms(
 
 bool ByChainPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     const auto& matching = GetMatchingChainAtoms(ctx);
-    unsigned int idx = atom.GetIdx();
+    const unsigned int idx = atom.GetIdx();
     return matching.count(idx) > 0;
 }
 
@@ -758,7 +754,7 @@ bool TurnPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
 // LoopPredicate implementation
 bool LoopPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
-    unsigned int ss = res.GetSecondaryStructure();
+    const unsigned int ss = res.GetSecondaryStructure();
     // Loop/coil is anything that's not helix, sheet, or turn
     return ss != OEBio::OESecondaryStructure::Helix &&
            ss != OEBio::OESecondaryStructure::Sheet &&

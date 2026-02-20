@@ -80,7 +80,7 @@ public:
      *
      * @return Canonical selection string.
      */
-    std::string ToCanonical() const;
+    [[nodiscard]] std::string ToCanonical() const;
 
     /**
      * @brief Check if selection contains a predicate of given type.
@@ -91,7 +91,7 @@ public:
      * @param type The predicate type to search for.
      * @return true if the selection tree contains this predicate type.
      */
-    bool ContainsPredicate(PredicateType type) const;
+    [[nodiscard]] bool ContainsPredicate(PredicateType type) const;
 
     /**
      * @brief Access the root predicate for direct evaluation.
@@ -99,7 +99,7 @@ public:
      * @return Reference to the root predicate.
      * @note Prefer using OESelect for atom evaluation.
      */
-    const Predicate& Root() const;
+    [[nodiscard]] const Predicate& Root() const;
 
     /**
      * @brief Check if this is an empty selection.
@@ -109,7 +109,7 @@ public:
      *
      * @return true if this selection matches all atoms.
      */
-    bool IsEmpty() const;
+    [[nodiscard]] bool IsEmpty() const;
 
 private:
     /// @brief Private constructor from root predicate.

@@ -66,8 +66,8 @@ The recommended way to install OESelect for Python is via pip:
    # Install OESelect (auto-selects correct binary for your OpenEye version)
    pip install oeselect
 
-The ``oeselect`` metapackage automatically installs the correct ``oeselect-lib``
-binary wheel matching your installed OpenEye Toolkits version.
+The ``oeselect`` package includes compiled C++ extensions and requires
+a compatible OpenEye Toolkits version.
 
 Verify Installation
 ^^^^^^^^^^^^^^^^^^^
@@ -104,7 +104,7 @@ If no pre-built wheel is available for your environment, build from source:
    python scripts/build_python.py --openeye-root /path/to/openeye/sdk
 
    # Install the built wheel
-   pip install dist/oeselect_lib-*.whl
+   pip install dist/oeselect-*.whl
 
 Troubleshooting
 ---------------
@@ -124,7 +124,7 @@ Import Errors
 If Python cannot find the ``oeselect`` module, verify:
 
 1. OpenEye Toolkits are installed: ``pip install openeye-toolkits``
-2. The ``oeselect-lib`` wheel matches your OpenEye version
+2. The ``oeselect`` wheel matches your OpenEye version
 3. On Linux, OpenEye libraries are accessible (``LD_LIBRARY_PATH``)
 
 Version Mismatch
@@ -134,9 +134,5 @@ If you see a version mismatch error:
 
 .. code-block:: bash
 
-   # Reinstall with the correct version
-   pip uninstall oeselect-lib
-   pip install oeselect-lib==1.0.0+oe<your-openeye-version>
-
-   # Or reinstall the metapackage
+   # Reinstall the package
    pip install --force-reinstall oeselect

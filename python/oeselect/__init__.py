@@ -4,10 +4,12 @@ OESelect - PyMOL-style selection language for OpenEye Toolkits
 This package provides a fast C++ implementation of a PyMOL-compatible
 selection language for use with OpenEye molecular modeling tools.
 
+Install with: ``pip install oeselect``
+
 Example usage::
 
     from openeye import oechem
-    from oeselect_lib import select, count, parse
+    from oeselect import select, count, parse
 
     # Create a molecule
     mol = oechem.OEGraphMol()
@@ -82,6 +84,57 @@ Hierarchical macro syntax:
     - //chain/resi/name: e.g., //A/100/CA
 """
 
+import warnings
+
+# Version info
+__version__ = "1.0.0"
+__version_info__ = (1, 0, 0)
+
+
+def _check_openeye_version():
+    """Check that the OpenEye version matches what was used at build time."""
+    try:
+        from . import _build_info
+    except ImportError:
+        # Build info not available (development install)
+        return
+
+    # Only check if using shared/dynamic linking
+    if getattr(_build_info, 'OPENEYE_LIBRARY_TYPE', 'STATIC') != 'SHARED':
+        return
+
+    build_version = getattr(_build_info, 'OPENEYE_BUILD_VERSION', None)
+    if not build_version:
+        return
+
+    try:
+        from openeye import oechem
+        # Get runtime toolkit version using the official API
+        runtime_version = oechem.OEToolkitsGetRelease()
+        if runtime_version and build_version:
+            # Compare major.minor.patch versions (e.g., "2025.2.1")
+            build_parts = build_version.split('.')[:3]
+            runtime_parts = runtime_version.split('.')[:3]
+            if build_parts != runtime_parts:
+                warnings.warn(
+                    f"OpenEye version mismatch: oeselect was built with OpenEye Toolkits {build_version} "
+                    f"but runtime has OpenEye Toolkits {runtime_version}. "
+                    f"This may cause compatibility issues. Please ensure openeye-toolkits "
+                    f"matches the version used to build oeselect.",
+                    RuntimeWarning
+                )
+    except ImportError:
+        warnings.warn(
+            "openeye-toolkits package not found. "
+            "This wheel requires openeye-toolkits to be installed. "
+            "Install with: pip install openeye-toolkits",
+            ImportWarning
+        )
+
+
+# Check OpenEye version on import
+_check_openeye_version()
+
 from .oeselect import (
     OESelection,
     EvaluateSelection,
@@ -89,7 +142,6 @@ from .oeselect import (
     select,
     count,
     parse,
-    __version__,
 )
 
 # Import PredicateType enum values
@@ -171,6 +223,8 @@ class PredicateType:
     False_ = PredicateType_False
 
 __all__ = [
+    "__version__",
+    "__version_info__",
     "OESelection",
     "PredicateType",
     "EvaluateSelection",
@@ -178,5 +232,4 @@ __all__ = [
     "select",
     "count",
     "parse",
-    "__version__",
 ]

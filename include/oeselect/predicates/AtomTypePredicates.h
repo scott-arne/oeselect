@@ -21,8 +21,8 @@ namespace OESel {
 class HeavyPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "heavy"; }
-    PredicateType Type() const override { return PredicateType::Heavy; }
+    [[nodiscard]] std::string ToCanonical() const override { return "heavy"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Heavy; }
 };
 
 /**
@@ -33,8 +33,8 @@ public:
 class HydrogenPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "hydrogen"; }
-    PredicateType Type() const override { return PredicateType::Hydrogen; }
+    [[nodiscard]] std::string ToCanonical() const override { return "hydrogen"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Hydrogen; }
 };
 
 /**
@@ -47,8 +47,8 @@ public:
 class PolarHydrogenPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "polar_hydrogen"; }
-    PredicateType Type() const override { return PredicateType::PolarHydrogen; }
+    [[nodiscard]] std::string ToCanonical() const override { return "polar_hydrogen"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::PolarHydrogen; }
 };
 
 /**
@@ -60,8 +60,8 @@ public:
 class NonpolarHydrogenPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "nonpolar_hydrogen"; }
-    PredicateType Type() const override { return PredicateType::NonpolarHydrogen; }
+    [[nodiscard]] std::string ToCanonical() const override { return "nonpolar_hydrogen"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::NonpolarHydrogen; }
 };
 
 }  // namespace OESel

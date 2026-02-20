@@ -6,6 +6,8 @@
 #include "oeselect/Selection.h"
 #include "oeselect/Parser.h"
 
+#include <algorithm>
+
 namespace OESel {
 
 /**
@@ -19,8 +21,8 @@ public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override {
         return true;
     }
-    std::string ToCanonical() const override { return "all"; }
-    PredicateType Type() const override { return PredicateType::True; }
+    [[nodiscard]] std::string ToCanonical() const override { return "all"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::True; }
 };
 
 /// PIMPL implementation holding the root predicate
@@ -33,9 +35,9 @@ struct OESelection::Impl {
 
 OESelection OESelection::Parse(const std::string& sele) {
     if (sele.empty()) {
-        return OESelection();  // Empty string = select all
+        return {};  // Empty string = select all
     }
-    auto root = ParseSelection(sele);
+    const auto root = ParseSelection(sele);
     return OESelection(root);
 }
 
@@ -72,20 +74,17 @@ namespace {
  * @param type Target predicate type.
  * @return true if any predicate in the subtree has the target type.
  */
-bool containsPredicateRecursive(const Predicate& pred, PredicateType type) {
+bool containsPredicateRecursive(const Predicate& pred, const PredicateType type) {
     if (pred.Type() == type) {
         return true;
     }
-    for (const auto& child : pred.Children()) {
-        if (containsPredicateRecursive(*child, type)) {
-            return true;
-        }
-    }
-    return false;
+    const auto& children = pred.Children();
+    return std::any_of(children.begin(), children.end(),
+        [type](const auto& child) { return containsPredicateRecursive(*child, type); });
 }
 }  // namespace
 
-bool OESelection::ContainsPredicate(PredicateType type) const {
+bool OESelection::ContainsPredicate(const PredicateType type) const {
     return containsPredicateRecursive(*pimpl_->root, type);
 }
 

@@ -35,9 +35,9 @@ public:
     explicit ByResPredicate(Ptr child);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::ByRes; }
-    std::vector<Ptr> Children() const override { return {child_}; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::ByRes; }
+    [[nodiscard]] std::vector<Ptr> Children() const override { return {child_}; }
 
 private:
     Ptr child_;
@@ -67,9 +67,9 @@ public:
     explicit ByChainPredicate(Ptr child);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::ByChain; }
-    std::vector<Ptr> Children() const override { return {child_}; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::ByChain; }
+    [[nodiscard]] std::vector<Ptr> Children() const override { return {child_}; }
 
 private:
     Ptr child_;

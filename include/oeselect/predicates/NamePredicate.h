@@ -38,8 +38,8 @@ public:
     explicit NamePredicate(std::string pattern);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::Name; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Name; }
 
 private:
     std::string pattern_;    ///< Name pattern (may contain wildcards)

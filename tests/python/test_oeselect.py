@@ -49,7 +49,7 @@ class TestOESelection:
 
     def test_parse_empty(self):
         """Empty selection should be valid."""
-        from oeselect_lib import parse
+        from oeselect import parse
 
         sele = parse("")
         assert sele.IsEmpty()
@@ -57,7 +57,7 @@ class TestOESelection:
 
     def test_parse_name(self):
         """Name selection should parse correctly."""
-        from oeselect_lib import parse
+        from oeselect import parse
 
         sele = parse("name CA")
         assert not sele.IsEmpty()
@@ -65,7 +65,7 @@ class TestOESelection:
 
     def test_parse_logical_and(self):
         """AND expression should parse."""
-        from oeselect_lib import parse
+        from oeselect import parse
 
         sele = parse("name CA and chain A")
         canonical = sele.ToCanonical()
@@ -73,7 +73,7 @@ class TestOESelection:
 
     def test_parse_logical_or(self):
         """OR expression should parse."""
-        from oeselect_lib import parse
+        from oeselect import parse
 
         sele = parse("name CA or name CB")
         canonical = sele.ToCanonical()
@@ -81,14 +81,14 @@ class TestOESelection:
 
     def test_parse_invalid_raises(self):
         """Invalid selection should raise ValueError."""
-        from oeselect_lib import parse
+        from oeselect import parse
 
         with pytest.raises(ValueError):
             parse("invalid_keyword xyz")
 
     def test_repr_and_str(self):
         """OESelection should have repr and str methods."""
-        from oeselect_lib import parse
+        from oeselect import parse
 
         sele = parse("name CA")
         assert "OESelection" in repr(sele)
@@ -100,7 +100,7 @@ class TestSelect:
 
     def test_select_elem_carbon(self, simple_mol):
         """Select carbon atoms."""
-        from oeselect_lib import select
+        from oeselect import select
 
         indices = select("elem C", simple_mol)
         assert len(indices) > 0
@@ -112,14 +112,14 @@ class TestSelect:
 
     def test_select_all(self, simple_mol):
         """'all' should select all atoms."""
-        from oeselect_lib import select
+        from oeselect import select
 
         indices = select("all", simple_mol)
         assert len(indices) == simple_mol.NumAtoms()
 
     def test_select_none(self, simple_mol):
         """'none' should select no atoms."""
-        from oeselect_lib import select
+        from oeselect import select
 
         indices = select("none", simple_mol)
         assert len(indices) == 0
@@ -127,7 +127,7 @@ class TestSelect:
     @pytest.mark.skip(reason="SMILES conversion loses residue info; need direct OEMol access")
     def test_select_resn(self, protein_mol):
         """Select by residue name."""
-        from oeselect_lib import select
+        from oeselect import select
 
         ala_indices = select("resn ALA", protein_mol)
         assert len(ala_indices) == 5  # First 5 atoms are ALA
@@ -135,7 +135,7 @@ class TestSelect:
     @pytest.mark.skip(reason="SMILES conversion loses chain info; need direct OEMol access")
     def test_select_chain(self, protein_mol):
         """Select by chain."""
-        from oeselect_lib import select
+        from oeselect import select
 
         chain_a_indices = select("chain A", protein_mol)
         assert len(chain_a_indices) == protein_mol.NumAtoms()  # All atoms in chain A
@@ -143,14 +143,14 @@ class TestSelect:
     @pytest.mark.skip(reason="SMILES conversion loses residue info; need direct OEMol access")
     def test_select_resi_range(self, protein_mol):
         """Select by residue number range."""
-        from oeselect_lib import select
+        from oeselect import select
 
         indices = select("resi 1-2", protein_mol)
         assert len(indices) == protein_mol.NumAtoms()
 
     def test_select_index_comparison(self, simple_mol):
         """Select by index comparison."""
-        from oeselect_lib import select
+        from oeselect import select
 
         # Select first 5 atoms
         indices = select("index < 5", simple_mol)
@@ -163,14 +163,14 @@ class TestCount:
 
     def test_count_all(self, simple_mol):
         """Count all atoms."""
-        from oeselect_lib import count
+        from oeselect import count
 
         num = count("all", simple_mol)
         assert num == simple_mol.NumAtoms()
 
     def test_count_elem(self, simple_mol):
         """Count carbon atoms."""
-        from oeselect_lib import count
+        from oeselect import count
 
         num_carbons = count("elem C", simple_mol)
         assert num_carbons > 0
@@ -186,7 +186,7 @@ class TestMultiValueSyntax:
     @pytest.mark.skip(reason="SMILES conversion loses atom names; need direct OEMol access")
     def test_multi_value_name(self, protein_mol):
         """Multi-value name syntax should work."""
-        from oeselect_lib import select
+        from oeselect import select
 
         # Set up atom names
         names = ["CA", "CB", "N", "C", "O", "CA", "N", "C", "O"]
@@ -209,7 +209,7 @@ class TestHierarchicalMacro:
     @pytest.mark.skip(reason="SMILES conversion loses chain info; need direct OEMol access")
     def test_macro_chain(self, protein_mol):
         """Select by chain using macro syntax."""
-        from oeselect_lib import select
+        from oeselect import select
 
         indices = select("//A//", protein_mol)
         assert len(indices) == protein_mol.NumAtoms()
@@ -217,7 +217,7 @@ class TestHierarchicalMacro:
     @pytest.mark.skip(reason="SMILES conversion loses residue info; need direct OEMol access")
     def test_macro_chain_resi(self, protein_mol):
         """Select by chain and residue using macro syntax."""
-        from oeselect_lib import select
+        from oeselect import select
 
         indices = select("//A/1/", protein_mol)
         assert len(indices) == 5  # 5 atoms in residue 1
@@ -228,7 +228,7 @@ class TestLogicalOperators:
 
     def test_and_operator(self, simple_mol):
         """AND operator should work."""
-        from oeselect_lib import count
+        from oeselect import count
 
         # elem C and index < 5 should select carbons in first 5 atoms
         total_c = count("elem C", simple_mol)
@@ -238,7 +238,7 @@ class TestLogicalOperators:
 
     def test_or_operator(self, simple_mol):
         """OR operator should work."""
-        from oeselect_lib import count
+        from oeselect import count
 
         c_count = count("elem C", simple_mol)
         o_count = count("elem O", simple_mol)
@@ -247,7 +247,7 @@ class TestLogicalOperators:
 
     def test_not_operator(self, simple_mol):
         """NOT operator should work."""
-        from oeselect_lib import count
+        from oeselect import count
 
         total = simple_mol.NumAtoms()
         c_count = count("elem C", simple_mol)
@@ -260,7 +260,7 @@ class TestPredicateType:
 
     def test_contains_predicate(self):
         """ContainsPredicate should work."""
-        from oeselect_lib import parse, PredicateType
+        from oeselect import parse, PredicateType
 
         sele = parse("name CA")
         assert sele.ContainsPredicate(PredicateType.Name)

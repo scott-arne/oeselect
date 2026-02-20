@@ -41,14 +41,14 @@ public:
      * @param message Descriptive error message.
      * @param position Character offset in input where error occurred.
      */
-    SelectionError(const std::string& message, size_t position)
+    SelectionError(const std::string& message, const size_t position)
         : std::runtime_error(message), position_(position) {}
 
     /**
      * @brief Get the position in the input string where parsing failed.
      * @return Zero-based character offset, or 0 if not applicable.
      */
-    size_t position() const { return position_; }
+    [[nodiscard]] size_t position() const { return position_; }
 
 private:
     size_t position_ = 0;  ///< Character offset of error in input

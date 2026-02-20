@@ -321,7 +321,7 @@ def select(selection_str, mol):
     Example::
 
         from openeye import oechem
-        from oeselect_lib import select
+        from oeselect import select
 
         mol = oechem.OEGraphMol()
         oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")  # Aspirin

@@ -3,8 +3,7 @@
 Build and package oeselect for PyPI distribution.
 
 This script builds:
-1. oeselect-lib: Binary wheel with compiled extensions
-2. oeselect: Source distribution (sdist) metapackage
+1. oeselect: Binary wheel with compiled extensions
 
 All packages are placed in dist/ ready for upload to PyPI.
 
@@ -14,8 +13,6 @@ Usage:
 Options:
     --openeye-root PATH    Path to OpenEye C++ SDK (headers)
     --python PATH          Python executable to use
-    --skip-lib             Skip building oeselect-lib wheel
-    --skip-meta            Skip building oeselect metapackage
     --clean                Clean dist/ before building
     --upload               Upload to PyPI after building (requires twine)
     --test-upload          Upload to TestPyPI instead of PyPI
@@ -25,26 +22,26 @@ Environment Variables:
     OPENEYE_ROOT    Path to OpenEye C++ SDK (alternative to --openeye-root)
     PYTHON          Python executable (alternative to --python)
 
+If --openeye-root is not provided and neither OPENEYE_ROOT nor OE_DIR
+environment variables are set, the script will attempt to read OPENEYE_ROOT
+from CMakePresets.json or CMakeUserPresets.json in the project root.
+
 Examples:
     # Build everything
     python scripts/build_python.py --openeye-root /path/to/openeye/sdk
 
     # Build and upload to TestPyPI
     python scripts/build_python.py --openeye-root /path/to/openeye/sdk --upload --test-upload
-
-    # Build only the metapackage
-    python scripts/build_python.py --skip-lib
 """
 
 import argparse
-import io
+import json
 import os
 import platform
 import re
 import shutil
 import subprocess
 import sys
-import tarfile
 import tempfile
 from pathlib import Path
 
@@ -118,7 +115,9 @@ print(f'PLATFORM:{os.path.basename(dll_dir)}')
                 key, value = line.split(':', 1)
                 info[key] = value
         return info
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        if e.stderr:
+            print_step(f"openeye import error: {e.stderr.strip()}")
         return None
 
 
@@ -134,6 +133,68 @@ def verify_openeye_root(openeye_root):
     return True
 
 
+def get_openeye_root_from_cmake_presets(project_dir: Path) -> str | None:
+    """Read OPENEYE_ROOT from CMake preset files.
+
+    Loads CMakePresets.json and CMakeUserPresets.json, resolves preset
+    inheritance, and returns the OPENEYE_ROOT cache variable if defined
+    in any configure preset.
+
+    :param project_dir: Root directory of the project.
+    :returns: OPENEYE_ROOT path string, or None if not found.
+    """
+    all_presets: dict[str, dict] = {}
+
+    for filename in ("CMakePresets.json", "CMakeUserPresets.json"):
+        filepath = project_dir / filename
+        if not filepath.exists():
+            continue
+        try:
+            data = json.loads(filepath.read_text())
+        except (json.JSONDecodeError, OSError):
+            continue
+        for preset in data.get("configurePresets", []):
+            name = preset.get("name")
+            if name:
+                all_presets[name] = preset
+
+    def resolve_cache_variables(preset_name: str, visited: set | None = None) -> dict:
+        """Resolve cache variables for a preset by walking its inheritance chain.
+
+        :param preset_name: Name of the preset to resolve.
+        :param visited: Set of already-visited preset names (cycle guard).
+        :returns: Merged cache variables dict.
+        """
+        if visited is None:
+            visited = set()
+        if preset_name in visited or preset_name not in all_presets:
+            return {}
+        visited.add(preset_name)
+
+        entry = all_presets[preset_name]
+        inherits = entry.get("inherits", [])
+        if isinstance(inherits, str):
+            inherits = [inherits]
+
+        merged: dict = {}
+        for parent_name in inherits:
+            merged.update(resolve_cache_variables(parent_name, visited))
+        merged.update(entry.get("cacheVariables", {}))
+        return merged
+
+    # Check non-hidden presets first, then hidden ones
+    for hidden in (False, True):
+        for name, preset in all_presets.items():
+            if preset.get("hidden", False) != hidden:
+                continue
+            cache_vars = resolve_cache_variables(name)
+            value = cache_vars.get("OPENEYE_ROOT")
+            if value and isinstance(value, str):
+                return value
+
+    return None
+
+
 def get_version_from_pyproject(pyproject_path):
     """Extract version string from a pyproject.toml file."""
     if not pyproject_path.exists():
@@ -145,34 +206,19 @@ def get_version_from_pyproject(pyproject_path):
     return None
 
 
-def verify_package_versions(project_dir):
-    """Verify that oeselect and oeselect-lib have the same version."""
+def get_lib_version(project_dir):
+    """Get the oeselect version from pyproject.toml."""
     lib_pyproject = Path(project_dir) / 'pyproject.toml'
-    meta_pyproject = Path(project_dir) / 'metapackage' / 'pyproject.toml'
-
     lib_version = get_version_from_pyproject(lib_pyproject)
-    meta_version = get_version_from_pyproject(meta_pyproject)
-
     if lib_version is None:
         print_error(f"Could not extract version from {lib_pyproject}")
-        return False
-
-    if meta_version is None:
-        print_error(f"Could not extract version from {meta_pyproject}")
-        return False
-
-    if lib_version != meta_version:
-        print_error(f"Version mismatch: oeselect-lib={lib_version}, oeselect={meta_version}")
-        print_error("Please ensure both packages have the same version in their pyproject.toml files")
-        return False
-
-    print_step(f"oeselect and oeselect-lib versions match: {lib_version}")
-    return True
+        return None
+    return lib_version
 
 
-def build_oeselect_lib(project_dir, python_exe, openeye_root, openeye_info, verbose=False):
-    """Build the oeselect-lib binary wheel."""
-    print_header("Building oeselect-lib (binary wheel)")
+def build_oeselect(project_dir, python_exe, openeye_root, openeye_info, verbose=False):
+    """Build the oeselect binary wheel."""
+    print_header("Building oeselect (binary wheel)")
 
     openeye_version = openeye_info['VERSION']
     openeye_lib_dir = openeye_info['LIB_DIR']
@@ -198,7 +244,7 @@ def build_oeselect_lib(project_dir, python_exe, openeye_root, openeye_info, verb
     run_command(cmd, cwd=project_dir, verbose=verbose)
 
     # Find the built wheel
-    wheels = list(Path(project_dir, 'dist').glob('oeselect_lib-*.whl'))
+    wheels = list(Path(project_dir, 'dist').glob('oeselect-*.whl'))
     if not wheels:
         print_error("No wheel file created")
         return None
@@ -206,23 +252,11 @@ def build_oeselect_lib(project_dir, python_exe, openeye_root, openeye_info, verb
     wheel_file = wheels[0]
     print_step(f"Wheel built: {wheel_file.name}")
 
-    # Rename wheel to include OpenEye version
-    wheel_name = wheel_file.name
-    match = re.match(r'^([^-]+)-([^-]+)-(.+)$', wheel_name)
-    if match:
-        pkg_name, pkg_version, rest = match.groups()
-        if '+oe' not in pkg_version:
-            new_name = f"{pkg_name}-{pkg_version}+oe{openeye_version}-{rest}"
-            new_path = wheel_file.parent / new_name
-            wheel_file.rename(new_path)
-            wheel_file = new_path
-            print_step(f"Renamed to: {wheel_file.name}")
-
     # Run delocate if available (macOS)
     if platform.system() == 'Darwin':
         wheel_file = run_delocate(project_dir, python_exe, wheel_file, openeye_info, verbose)
 
-    print_success(f"oeselect-lib wheel: {wheel_file}")
+    print_success(f"oeselect wheel: {wheel_file}")
     return wheel_file
 
 
@@ -335,7 +369,7 @@ def fix_rpath_and_sign(wheel_file, openeye_info):
             zf.extractall(tmpdir)
 
         # Find the .so file
-        so_file = tmpdir / 'oeselect_lib' / '_oeselect.so'
+        so_file = tmpdir / 'oeselect' / '_oeselect.so'
         if so_file.exists():
             # Add rpath
             try:
@@ -351,7 +385,7 @@ def fix_rpath_and_sign(wheel_file, openeye_info):
                 ], check=False, capture_output=True)
 
                 # Sign bundled dylibs too
-                dylibs_dir = tmpdir / 'oeselect_lib' / '.dylibs'
+                dylibs_dir = tmpdir / 'oeselect' / '.dylibs'
                 if dylibs_dir.exists():
                     for dylib in dylibs_dir.glob('*.dylib'):
                         subprocess.run([
@@ -373,132 +407,11 @@ def fix_rpath_and_sign(wheel_file, openeye_info):
     return wheel_file
 
 
-def build_oeselect_meta(project_dir, python_exe, verbose=False):
-    """Build the oeselect metapackage source distribution."""
-    print_header("Building oeselect (metapackage sdist)")
-
-    metapackage_dir = Path(project_dir) / 'metapackage'
-    if not metapackage_dir.exists():
-        print_error(f"Metapackage directory not found: {metapackage_dir}")
-        return None
-
-    # Build sdist using build module or setup.py
-    print_step("Building source distribution...")
-
-    sdist_file = None
-
-    # Try using python -m build first
-    try:
-        run_command(
-            [python_exe, '-m', 'build', '--sdist', '--no-isolation',
-             '--outdir', str(Path(project_dir) / 'dist')],
-            cwd=metapackage_dir,
-            verbose=verbose
-        )
-        sdists = list(Path(project_dir, 'dist').glob('oeselect-*.tar.gz'))
-        if sdists:
-            sdist_file = sdists[0]
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        if verbose:
-            print_step(f"python -m build failed: {e}")
-
-    # Fall back to setup.py sdist
-    if not sdist_file:
-        try:
-            print_step("Trying setup.py sdist...")
-            run_command(
-                [python_exe, 'setup.py', 'sdist', '--dist-dir', str(Path(project_dir) / 'dist')],
-                cwd=metapackage_dir,
-                verbose=verbose
-            )
-            sdists = list(Path(project_dir, 'dist').glob('oeselect-*.tar.gz'))
-            if sdists:
-                sdist_file = sdists[0]
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            if verbose:
-                print_step(f"setup.py sdist failed: {e}")
-
-    # Final fallback: create sdist manually
-    if not sdist_file:
-        print_step("Creating sdist manually...")
-        sdist_file = create_sdist_manual(metapackage_dir, Path(project_dir) / 'dist')
-
-    if not sdist_file or not sdist_file.exists():
-        print_error("No sdist file created")
-        return None
-
-    print_success(f"oeselect sdist: {sdist_file}")
-    return sdist_file
-
-
-def create_sdist_manual(metapackage_dir, dist_dir):
-    """Create source distribution manually without setuptools."""
-    metapackage_dir = Path(metapackage_dir)
-    dist_dir = Path(dist_dir)
-    dist_dir.mkdir(exist_ok=True)
-
-    # Get package info from pyproject.toml or setup.py
-    pkg_name = "oeselect"
-    pkg_version = "1.0.0"
-
-    # Try to extract version from pyproject.toml
-    pyproject_path = metapackage_dir / 'pyproject.toml'
-    if pyproject_path.exists():
-        content = pyproject_path.read_text()
-        match = re.search(r'version\s*=\s*"([^"]+)"', content)
-        if match:
-            pkg_version = match.group(1)
-
-    sdist_name = f"{pkg_name}-{pkg_version}"
-    sdist_filename = f"{sdist_name}.tar.gz"
-    sdist_path = dist_dir / sdist_filename
-
-    # Files to include in sdist
-    files_to_include = [
-        'pyproject.toml',
-        'setup.py',
-        'README.md',
-        'LICENSE',
-    ]
-
-    # Include src/ directory
-    src_dir = metapackage_dir / 'src'
-
-    with tarfile.open(sdist_path, 'w:gz') as tar:
-        # Add top-level files
-        for filename in files_to_include:
-            filepath = metapackage_dir / filename
-            if filepath.exists():
-                arcname = f"{sdist_name}/{filename}"
-                tar.add(filepath, arcname=arcname)
-
-        # Add src/ directory
-        if src_dir.exists():
-            for filepath in src_dir.rglob('*'):
-                if filepath.is_file() and '__pycache__' not in str(filepath):
-                    arcname = f"{sdist_name}/src/{filepath.relative_to(src_dir)}"
-                    tar.add(filepath, arcname=arcname)
-
-        # Create PKG-INFO
-        pkg_info = f"""Metadata-Version: 2.1
-Name: {pkg_name}
-Version: {pkg_version}
-Summary: PyMOL-style selection language for OpenEye Toolkits
-Requires-Python: >=3.10
-"""
-        pkg_info_bytes = pkg_info.encode('utf-8')
-        tarinfo = tarfile.TarInfo(name=f"{sdist_name}/PKG-INFO")
-        tarinfo.size = len(pkg_info_bytes)
-        tar.addfile(tarinfo, io.BytesIO(pkg_info_bytes))
-
-    return sdist_path
-
-
 def upload_to_pypi(dist_dir, test_pypi=False, verbose=False):
     """Upload packages to PyPI using twine."""
     print_header(f"Uploading to {'TestPyPI' if test_pypi else 'PyPI'}")
 
-    packages = list(Path(dist_dir).glob('oeselect*.whl')) + list(Path(dist_dir).glob('oeselect*.tar.gz'))
+    packages = list(Path(dist_dir).glob('oeselect*.whl'))
     if not packages:
         print_error("No packages found to upload")
         return False
@@ -536,16 +449,6 @@ def main():
         '--python',
         default=os.environ.get('PYTHON', sys.executable),
         help='Python executable to use'
-    )
-    parser.add_argument(
-        '--skip-lib',
-        action='store_true',
-        help='Skip building oeselect-lib wheel'
-    )
-    parser.add_argument(
-        '--skip-meta',
-        action='store_true',
-        help='Skip building oeselect metapackage'
     )
     parser.add_argument(
         '--clean',
@@ -586,9 +489,10 @@ def main():
     print(f"Project directory: {project_dir}")
     print(f"Python: {args.python}")
 
-    # Verify package versions match
-    if not verify_package_versions(project_dir):
-        return 1
+    # Display version
+    lib_version = get_lib_version(project_dir)
+    if lib_version:
+        print_step(f"oeselect version: {lib_version}")
 
     # Clean dist if requested
     dist_dir = project_dir / 'dist'
@@ -605,45 +509,39 @@ def main():
         print(f"OpenEye Toolkits: {openeye_info['VERSION']}")
     else:
         print_step("openeye-toolkits not installed in Python environment")
-        if not args.skip_lib:
-            print_error("Cannot build oeselect-lib without openeye-toolkits")
-            print("Install with: pip install openeye-toolkits")
-            print("Or use --skip-lib to only build the metapackage")
-            return 1
+        print_error("Cannot build oeselect without openeye-toolkits")
+        print("Install with: pip install openeye-toolkits")
+        return 1
 
     built_packages = []
 
-    # Build oeselect-lib
-    if not args.skip_lib:
-        if not args.openeye_root:
+    # Build oeselect
+    if not args.openeye_root:
+        preset_root = get_openeye_root_from_cmake_presets(project_dir)
+        if preset_root:
+            args.openeye_root = preset_root
+            print_step(f"Using OPENEYE_ROOT from CMake presets: {preset_root}")
+        else:
             print_error("OPENEYE_ROOT not set")
-            print("Please set OPENEYE_ROOT environment variable or use --openeye-root")
+            print("Please set OPENEYE_ROOT environment variable, use --openeye-root,")
+            print("or define it in CMakePresets.json / CMakeUserPresets.json")
             return 1
 
-        if not verify_openeye_root(args.openeye_root):
-            return 1
+    if not verify_openeye_root(args.openeye_root):
+        return 1
 
-        wheel = build_oeselect_lib(
-            project_dir,
-            args.python,
-            args.openeye_root,
-            openeye_info,
-            verbose=args.verbose
-        )
-        if wheel:
-            built_packages.append(wheel)
-        else:
-            print_error("Failed to build oeselect-lib")
-            return 1
-
-    # Build oeselect metapackage
-    if not args.skip_meta:
-        sdist = build_oeselect_meta(project_dir, args.python, verbose=args.verbose)
-        if sdist:
-            built_packages.append(sdist)
-        else:
-            print_error("Failed to build oeselect metapackage")
-            return 1
+    wheel = build_oeselect(
+        project_dir,
+        args.python,
+        args.openeye_root,
+        openeye_info,
+        verbose=args.verbose
+    )
+    if wheel:
+        built_packages.append(wheel)
+    else:
+        print_error("Failed to build oeselect")
+        return 1
 
     # Summary
     print_header("Build Summary")

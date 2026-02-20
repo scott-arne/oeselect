@@ -58,10 +58,10 @@ public:
     OEChem::OEMolBase& Mol();
 
     /// @brief Access the molecule (const).
-    const OEChem::OEMolBase& Mol() const;
+    [[nodiscard]] const OEChem::OEMolBase& Mol() const;
 
     /// @brief Access the selection being evaluated.
-    const OESelection& Sele() const;
+    [[nodiscard]] const OESelection& Sele() const;
 
     /**
      * @brief Get or create the spatial index.
@@ -96,7 +96,7 @@ public:
      * @param key Cache key to check.
      * @return true if the cache contains this key.
      */
-    bool HasResidueCache(const std::string& key) const;
+    [[nodiscard]] bool HasResidueCache(const std::string& key) const;
 
     /// @}
 
@@ -123,7 +123,7 @@ public:
      * @param key Cache key to check.
      * @return true if the cache contains this key.
      */
-    bool HasChainCache(const std::string& key) const;
+    [[nodiscard]] bool HasChainCache(const std::string& key) const;
 
     /// @}
 
@@ -150,7 +150,7 @@ public:
      * @param key Cache key to check.
      * @return true if the cache contains this key.
      */
-    bool HasAroundCache(const std::string& key) const;
+    [[nodiscard]] bool HasAroundCache(const std::string& key) const;
 
     /// @}
 

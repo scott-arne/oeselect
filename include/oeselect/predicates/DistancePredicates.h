@@ -35,9 +35,9 @@ public:
     AroundPredicate(float radius, Ptr reference);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::Around; }
-    std::vector<Ptr> Children() const override { return {reference_}; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Around; }
+    [[nodiscard]] std::vector<Ptr> Children() const override { return {reference_}; }
 
 private:
     float radius_;
@@ -69,9 +69,9 @@ public:
     XAroundPredicate(float radius, Ptr reference);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::XAround; }
-    std::vector<Ptr> Children() const override { return {reference_}; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::XAround; }
+    [[nodiscard]] std::vector<Ptr> Children() const override { return {reference_}; }
 
 private:
     float radius_;
@@ -103,9 +103,9 @@ public:
     BeyondPredicate(float radius, Ptr reference);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::Beyond; }
-    std::vector<Ptr> Children() const override { return {reference_}; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Beyond; }
+    [[nodiscard]] std::vector<Ptr> Children() const override { return {reference_}; }
 
 private:
     float radius_;

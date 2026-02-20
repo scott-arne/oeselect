@@ -65,7 +65,7 @@ public:
      * @param radius Maximum distance in Angstroms.
      * @return Vector of atom indices within the radius.
      */
-    std::vector<unsigned int> FindWithinRadius(float x, float y, float z, float radius) const;
+    [[nodiscard]] std::vector<unsigned int> FindWithinRadius(float x, float y, float z, float radius) const;
 
     /**
      * @brief Find all atoms within radius of another atom.
@@ -76,13 +76,13 @@ public:
      * @param radius Maximum distance in Angstroms.
      * @return Vector of atom indices within the radius.
      */
-    std::vector<unsigned int> FindWithinRadius(const OEChem::OEAtomBase& atom, float radius) const;
+    [[nodiscard]] std::vector<unsigned int> FindWithinRadius(const OEChem::OEAtomBase& atom, float radius) const;
 
     /**
      * @brief Get the number of atoms in the index.
      * @return Number of indexed atoms.
      */
-    size_t Size() const;
+    [[nodiscard]] size_t Size() const;
 
 private:
     struct Impl;

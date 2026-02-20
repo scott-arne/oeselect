@@ -3,7 +3,7 @@ requires = ["scikit-build-core>=0.8", "swig>=4.0"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "oeselect-lib"
+name = "oeselect"
 version = "1.0.0"
 description = "High-performance PyMOL selection language for OpenEye Toolkits"
 license = "MIT"
@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["openeye-toolkits>=2025.2"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]

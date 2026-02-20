@@ -29,9 +29,9 @@ public:
     explicit AndPredicate(std::vector<Ptr> children);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::And; }
-    std::vector<Ptr> Children() const override { return children_; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::And; }
+    [[nodiscard]] std::vector<Ptr> Children() const override { return children_; }
 
 private:
     std::vector<Ptr> children_;
@@ -52,9 +52,9 @@ public:
     explicit OrPredicate(std::vector<Ptr> children);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::Or; }
-    std::vector<Ptr> Children() const override { return children_; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Or; }
+    [[nodiscard]] std::vector<Ptr> Children() const override { return children_; }
 
 private:
     std::vector<Ptr> children_;
@@ -74,9 +74,9 @@ public:
     explicit NotPredicate(Ptr child);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::Not; }
-    std::vector<Ptr> Children() const override { return {child_}; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Not; }
+    [[nodiscard]] std::vector<Ptr> Children() const override { return {child_}; }
 
 private:
     Ptr child_;
@@ -97,9 +97,9 @@ public:
     explicit XOrPredicate(std::vector<Ptr> children);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override;
-    PredicateType Type() const override { return PredicateType::XOr; }
-    std::vector<Ptr> Children() const override { return children_; }
+    [[nodiscard]] std::string ToCanonical() const override;
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::XOr; }
+    [[nodiscard]] std::vector<Ptr> Children() const override { return children_; }
 
 private:
     std::vector<Ptr> children_;

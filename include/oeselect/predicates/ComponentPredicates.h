@@ -22,8 +22,8 @@ namespace OESel {
 class ProteinPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "protein"; }
-    PredicateType Type() const override { return PredicateType::Protein; }
+    [[nodiscard]] std::string ToCanonical() const override { return "protein"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Protein; }
 };
 
 /**
@@ -36,8 +36,8 @@ public:
 class LigandPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "ligand"; }
-    PredicateType Type() const override { return PredicateType::Ligand; }
+    [[nodiscard]] std::string ToCanonical() const override { return "ligand"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Ligand; }
 };
 
 /**
@@ -48,8 +48,8 @@ public:
 class WaterPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "water"; }
-    PredicateType Type() const override { return PredicateType::Water; }
+    [[nodiscard]] std::string ToCanonical() const override { return "water"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Water; }
 };
 
 /**
@@ -61,8 +61,8 @@ public:
 class SolventPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "solvent"; }
-    PredicateType Type() const override { return PredicateType::Solvent; }
+    [[nodiscard]] std::string ToCanonical() const override { return "solvent"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Solvent; }
 };
 
 /**
@@ -74,8 +74,8 @@ public:
 class OrganicPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "organic"; }
-    PredicateType Type() const override { return PredicateType::Organic; }
+    [[nodiscard]] std::string ToCanonical() const override { return "organic"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Organic; }
 };
 
 /**
@@ -86,8 +86,8 @@ public:
 class BackbonePredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "backbone"; }
-    PredicateType Type() const override { return PredicateType::Backbone; }
+    [[nodiscard]] std::string ToCanonical() const override { return "backbone"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Backbone; }
 };
 
 /**
@@ -99,8 +99,8 @@ public:
 class SidechainPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "sidechain"; }
-    PredicateType Type() const override { return PredicateType::Backbone; }  // Reuses type
+    [[nodiscard]] std::string ToCanonical() const override { return "sidechain"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Backbone; }  // Reuses type
 };
 
 /**
@@ -112,8 +112,8 @@ public:
 class MetalPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
-    std::string ToCanonical() const override { return "metal"; }
-    PredicateType Type() const override { return PredicateType::Metal; }
+    [[nodiscard]] std::string ToCanonical() const override { return "metal"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Metal; }
 };
 
 }  // namespace OESel

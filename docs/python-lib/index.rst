@@ -31,7 +31,7 @@ Or build from source:
 .. code-block:: bash
 
    python scripts/build_python.py --openeye-root /path/to/openeye/sdk
-   pip install dist/oeselect_lib-*.whl
+   pip install dist/oeselect-*.whl
 
 Basic Usage
 -----------

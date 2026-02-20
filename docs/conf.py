@@ -11,11 +11,8 @@ import sys
 docs_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(docs_dir)
 
-# Add oeselect_lib (Python bindings)
-sys.path.insert(0, os.path.join(project_root, 'python', 'oeselect_lib'))
-
-# Add metapackage
-sys.path.insert(0, os.path.join(project_root, 'metapackage', 'src'))
+# Add oeselect (Python bindings)
+sys.path.insert(0, os.path.join(project_root, 'python', 'oeselect'))
 
 # -- Check for Doxygen --------------------------------------------------------
 

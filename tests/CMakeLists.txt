@@ -18,7 +18,6 @@ target_link_libraries(oeselect_tests
     PRIVATE
         oeselect
         GTest::gtest
-        GTest::gtest_main
 )
 
 include(GoogleTest)

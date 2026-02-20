@@ -26,11 +26,11 @@ struct MoleculePointCloud {
     std::vector<unsigned int> atom_indices;  ///< Original atom indices
 
     explicit MoleculePointCloud(OEChem::OEMolBase& mol) {
-        size_t n = mol.NumAtoms();
+        const size_t n = mol.NumAtoms();
         coords.reserve(n * 3);
         atom_indices.reserve(n);
 
-        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
             float xyz[3];
             const OEChem::OEAtomBase& a = *atom;
             mol.GetCoords(&a, xyz);
@@ -44,10 +44,10 @@ struct MoleculePointCloud {
     // nanoflann required interface
 
     /// @brief Returns number of points in the cloud.
-    size_t kdtree_get_point_count() const { return atom_indices.size(); }
+    [[nodiscard]] size_t kdtree_get_point_count() const { return atom_indices.size(); }
 
     /// @brief Returns coordinate dim of point idx.
-    float kdtree_get_pt(size_t idx, size_t dim) const {
+    [[nodiscard]] float kdtree_get_pt(const size_t idx, const size_t dim) const {
         return coords[idx * 3 + dim];
     }
 
@@ -60,8 +60,7 @@ struct MoleculePointCloud {
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<
     nanoflann::L2_Simple_Adaptor<float, MoleculePointCloud>,
     MoleculePointCloud,
-    3,              // 3D space
-    unsigned int    // index type
+    3               // 3D space
 >;
 
 /// PIMPL containing point cloud and k-d tree
@@ -83,12 +82,12 @@ SpatialIndex::SpatialIndex(OEChem::OEMolBase& mol)
 
 SpatialIndex::~SpatialIndex() = default;
 
-std::vector<unsigned int> SpatialIndex::FindWithinRadius(float x, float y, float z, float radius) const {
+std::vector<unsigned int> SpatialIndex::FindWithinRadius(const float x, const float y, const float z, const float radius) const {
     std::vector<unsigned int> result;
     if (!pimpl_->tree) return result;
 
-    float query[3] = {x, y, z};
-    float radius_sq = radius * radius;  // nanoflann uses squared distances
+    const float query[3] = {x, y, z};
+    const float radius_sq = radius * radius;  // nanoflann uses squared distances
 
     std::vector<nanoflann::ResultItem<unsigned int, float>> matches;
     pimpl_->tree->radiusSearch(query, radius_sq, matches);
@@ -101,7 +100,7 @@ std::vector<unsigned int> SpatialIndex::FindWithinRadius(float x, float y, float
     return result;
 }
 
-std::vector<unsigned int> SpatialIndex::FindWithinRadius(const OEChem::OEAtomBase& atom, float radius) const {
+std::vector<unsigned int> SpatialIndex::FindWithinRadius(const OEChem::OEAtomBase& atom, const float radius) const {
     float xyz[3];
     atom.GetParent()->GetCoords(&atom, xyz);
     return FindWithinRadius(xyz[0], xyz[1], xyz[2], radius);

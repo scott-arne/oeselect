@@ -134,7 +134,7 @@ elseif(UNIX)
 endif()
 
 # Define output directory for Python module
-set(PYTHON_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/python/oeselect_lib)
+set(PYTHON_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/python/oeselect)
 
 # Custom command to copy the generated Python wrapper and shared library
 add_custom_command(TARGET oeselect_python POST_BUILD
@@ -159,19 +159,19 @@ add_custom_command(TARGET oeselect_python POST_BUILD
 # Install targets for wheel building
 # scikit-build-core will set CMAKE_INSTALL_PREFIX appropriately
 install(TARGETS oeselect_python
-    LIBRARY DESTINATION oeselect_lib
-    RUNTIME DESTINATION oeselect_lib
+    LIBRARY DESTINATION oeselect
+    RUNTIME DESTINATION oeselect
 )
 
 # Install the SWIG-generated Python file
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/_oeselect.py
-    DESTINATION oeselect_lib
+    DESTINATION oeselect
     RENAME oeselect.py
 )
 
 # Install the Python package __init__.py
-install(FILES ${CMAKE_SOURCE_DIR}/python/oeselect_lib/__init__.py
-    DESTINATION oeselect_lib
+install(FILES ${CMAKE_SOURCE_DIR}/python/oeselect/__init__.py
+    DESTINATION oeselect
 )
 
 # Generate build info file with OpenEye version for runtime checking
@@ -186,5 +186,5 @@ OPENEYE_LIBRARY_TYPE = \"${OpenEye_LIBRARY_TYPE}\"
 ")
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/_build_info.py "${BUILD_INFO_CONTENT}")
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/_build_info.py
-    DESTINATION oeselect_lib
+    DESTINATION oeselect
 )

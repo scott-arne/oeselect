@@ -93,14 +93,14 @@ public:
      *
      * @return New OESelect instance (caller takes ownership).
      */
-    OESystem::OEUnaryFunction<OEChem::OEAtomBase, bool>* CreateCopy() const override;
+    [[nodiscard]] OESystem::OEUnaryFunction<OEChem::OEAtomBase, bool>* CreateCopy() const override;
 
     /**
      * @brief Access the underlying selection.
      *
      * @return Reference to the OESelection used by this selector.
      */
-    const OESelection& GetSelection() const;
+    [[nodiscard]] const OESelection& GetSelection() const;
 
 private:
     struct Impl;

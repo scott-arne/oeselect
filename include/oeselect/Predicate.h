@@ -115,13 +115,13 @@ public:
      *
      * @return Canonical selection string.
      */
-    virtual std::string ToCanonical() const = 0;
+    [[nodiscard]] virtual std::string ToCanonical() const = 0;
 
     /**
      * @brief Get the type of this predicate for introspection.
      * @return The PredicateType enum value.
      */
-    virtual PredicateType Type() const = 0;
+    [[nodiscard]] virtual PredicateType Type() const = 0;
 
     /**
      * @brief Get child predicates for composite predicates.
@@ -131,7 +131,7 @@ public:
      *
      * @return Vector of child predicate pointers.
      */
-    virtual std::vector<Ptr> Children() const { return {}; }
+    [[nodiscard]] virtual std::vector<Ptr> Children() const { return {}; }
 };
 
 }  // namespace OESel

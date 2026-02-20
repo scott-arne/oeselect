@@ -10,7 +10,6 @@
 
 #include <oechem.h>
 
-#include <cctype>
 #include <set>
 #include <string>
 
@@ -96,7 +95,7 @@ std::string TrimWhitespace(const std::string& str) {
  * @return Component flag indicating the residue type.
  */
 ComponentFlag ClassifyResidue(const std::string& resname) {
-    std::string name = TrimWhitespace(resname);
+    const std::string name = TrimWhitespace(resname);
 
     if (WATER_RESNAMES.count(name)) return ComponentFlag::Water;
     if (AMINO_ACIDS.count(name)) return ComponentFlag::Protein;
@@ -115,9 +114,9 @@ void Tagger::TagMolecule(OEChem::OEMolBase& mol) {
     }
 
     // Iterate all atoms and assign component flags based on residue name
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&(*atom));
-        std::string resname = res.GetName();
+        const std::string resname = res.GetName();
 
         ComponentFlag flag = ClassifyResidue(resname);
         atom->SetData<unsigned int>(GetComponentTag(), static_cast<uint32_t>(flag));
@@ -128,7 +127,7 @@ void Tagger::TagMolecule(OEChem::OEMolBase& mol) {
 }
 
 bool Tagger::HasComponent(const OEChem::OEAtomBase& atom, ComponentFlag flag) {
-    uint32_t flags = GetFlags(atom);
+    const uint32_t flags = GetFlags(atom);
     return (flags & static_cast<uint32_t>(flag)) != 0;
 }
 
