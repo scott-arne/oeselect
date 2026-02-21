@@ -52,6 +52,10 @@ struct kw_resi : TAO_PEGTL_ISTRING("resi") {};
 struct kw_chain : TAO_PEGTL_ISTRING("chain") {};
 struct kw_elem : TAO_PEGTL_ISTRING("elem") {};
 struct kw_index : TAO_PEGTL_ISTRING("index") {};
+struct kw_id : pegtl::sor<TAO_PEGTL_ISTRING("serial"), TAO_PEGTL_ISTRING("id")> {};
+struct kw_alt : TAO_PEGTL_ISTRING("alt") {};
+struct kw_b : pegtl::sor<TAO_PEGTL_ISTRING("bfactor"), TAO_PEGTL_ISTRING("b")> {};
+struct kw_frag : pegtl::sor<TAO_PEGTL_ISTRING("fragment"), TAO_PEGTL_ISTRING("frag")> {};
 
 // Logical operators
 struct kw_and : TAO_PEGTL_ISTRING("and") {};
@@ -88,9 +92,16 @@ struct float_num : pegtl::seq<
     pegtl::opt<pegtl::seq<pegtl::one<'.'>, pegtl::star<pegtl::digit>>>
 > {};
 
+// Float value for property comparisons (no leading minus sign)
+struct prop_float : pegtl::seq<
+    pegtl::plus<pegtl::digit>,
+    pegtl::opt<pegtl::seq<pegtl::one<'.'>, pegtl::star<pegtl::digit>>>
+> {};
+struct float_range : pegtl::seq<prop_float, pegtl::one<'-'>, prop_float> {};
+
 // Distance and expansion keywords
 struct kw_around : TAO_PEGTL_ISTRING("around") {};
-struct kw_xaround : TAO_PEGTL_ISTRING("xaround") {};
+struct kw_expand : TAO_PEGTL_ISTRING("expand") {};
 struct kw_beyond : TAO_PEGTL_ISTRING("beyond") {};
 struct kw_byres : TAO_PEGTL_ISTRING("byres") {};
 struct kw_bychain : TAO_PEGTL_ISTRING("bychain") {};
@@ -125,6 +136,27 @@ struct index_comp_spec : pegtl::seq<kw_index, ws_required, comp_op, ws, number> 
 struct index_range_spec : pegtl::seq<kw_index, ws_required, range> {};
 struct index_exact_spec : pegtl::seq<kw_index, ws_required, number> {};
 struct index_spec : pegtl::sor<index_comp_spec, index_range_spec, index_exact_spec> {};
+
+// id/serial: integer exact, range, comparison (same as index)
+struct id_comp_spec : pegtl::seq<kw_id, ws_required, comp_op, ws, number> {};
+struct id_range_spec : pegtl::seq<kw_id, ws_required, range> {};
+struct id_exact_spec : pegtl::seq<kw_id, ws_required, number> {};
+struct id_spec : pegtl::sor<id_comp_spec, id_range_spec, id_exact_spec> {};
+
+// alt: single character (reuses chain_id rule)
+struct alt_spec : pegtl::seq<kw_alt, ws_required, chain_id> {};
+
+// b/bfactor: float exact, range, comparison
+struct b_comp_spec : pegtl::seq<kw_b, ws_required, comp_op, ws, prop_float> {};
+struct b_range_spec : pegtl::seq<kw_b, ws_required, float_range> {};
+struct b_exact_spec : pegtl::seq<kw_b, ws_required, prop_float> {};
+struct b_spec : pegtl::sor<b_comp_spec, b_range_spec, b_exact_spec> {};
+
+// frag/fragment: integer exact, range, comparison (same as index)
+struct frag_comp_spec : pegtl::seq<kw_frag, ws_required, comp_op, ws, number> {};
+struct frag_range_spec : pegtl::seq<kw_frag, ws_required, range> {};
+struct frag_exact_spec : pegtl::seq<kw_frag, ws_required, number> {};
+struct frag_spec : pegtl::sor<frag_comp_spec, frag_range_spec, frag_exact_spec> {};
 
 // Keyword-only specifiers
 struct protein_spec : kw_protein {};
@@ -179,29 +211,28 @@ struct paren_expr : pegtl::seq<
     close_paren
 > {};
 
-// Distance specifiers with nested selection
-struct around_spec : pegtl::seq<kw_around, ws_required, float_num, ws_required, primary> {};
-struct xaround_spec : pegtl::seq<kw_xaround, ws_required, float_num, ws_required, primary> {};
-struct beyond_spec : pegtl::seq<kw_beyond, ws_required, float_num, ws_required, primary> {};
-
-// Expansion specifiers
-struct byres_spec : pegtl::seq<kw_byres, ws_required, primary> {};
-struct bychain_spec : pegtl::seq<kw_bychain, ws_required, primary> {};
+// Distance operator suffixes (infix syntax: <selection> around <radius>)
+struct around_suffix : pegtl::seq<kw_around, ws_required, float_num> {};
+struct expand_suffix : pegtl::seq<kw_expand, ws_required, float_num> {};
+struct beyond_suffix : pegtl::seq<kw_beyond, ws_required, float_num> {};
+struct distance_suffix : pegtl::sor<expand_suffix, around_suffix, beyond_suffix> {};
 
 // All specifiers (order matters - longer matches first)
 struct specifier : pegtl::sor<
     macro_spec,
     name_spec, resn_spec, resi_spec, chain_spec, elem_spec, index_spec,
+    id_spec, alt_spec, b_spec, frag_spec,
     protein_spec, ligand_spec, water_spec, solvent_spec, organic_spec,
     backbone_spec, sidechain_spec, metal_spec,
     helix_spec, sheet_spec, turn_spec, loop_spec,
     heavy_spec, polar_hydrogen_spec, nonpolar_hydrogen_spec, hydrogen_spec,
-    xaround_spec, around_spec, beyond_spec,
-    bychain_spec, byres_spec,
     all_spec, none_spec
 > {};
 
 struct primary : pegtl::sor<paren_expr, specifier> {};
+
+// Distance expression: primary optionally followed by a distance suffix
+struct distance_expr : pegtl::seq<primary, pegtl::opt<pegtl::seq<ws_required, distance_suffix>>> {};
 
 // Operator markers for action tracking
 struct not_op : kw_not {};
@@ -209,10 +240,19 @@ struct and_op : kw_and {};
 struct or_op : kw_or {};
 struct xor_op : kw_xor {};
 
+// Forward declaration for expansion operators
+struct not_expr;
+
+// Expansion operators as prefix on not_expr
+struct byres_expr : pegtl::seq<kw_byres, ws_required, not_expr> {};
+struct bychain_expr : pegtl::seq<kw_bychain, ws_required, not_expr> {};
+
 // Expression grammar with precedence
 struct not_expr : pegtl::sor<
     pegtl::seq<not_op, ws_required, not_expr>,
-    primary
+    byres_expr,
+    bychain_expr,
+    distance_expr
 > {};
 
 struct and_expr : pegtl::seq<
@@ -257,6 +297,10 @@ struct ParserState {
     int first_number = 0;
     int second_number = 0;
     ResiPredicate::Op comp_op = ResiPredicate::Op::Eq;
+
+    // Float state for b-factor
+    float first_float = 0.0f;
+    float second_float = 0.0f;
 
     // Distance predicate state
     float current_radius = 0.0f;
@@ -539,6 +583,121 @@ struct Action<Grammar::index_exact_spec> {
     }
 };
 
+// Id/serial specifiers
+template<>
+struct Action<Grammar::id_comp_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        IdPredicate::Op id_op;
+        switch (state.comp_op) {
+            case ResiPredicate::Op::Lt: id_op = IdPredicate::Op::Lt; break;
+            case ResiPredicate::Op::Le: id_op = IdPredicate::Op::Le; break;
+            case ResiPredicate::Op::Gt: id_op = IdPredicate::Op::Gt; break;
+            case ResiPredicate::Op::Ge: id_op = IdPredicate::Op::Ge; break;
+            default: id_op = IdPredicate::Op::Eq; break;
+        }
+        state.pushOperand(std::make_shared<IdPredicate>(state.first_number, id_op));
+        state.comp_op = ResiPredicate::Op::Eq;
+    }
+};
+
+template<>
+struct Action<Grammar::id_range_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<IdPredicate>(state.second_number, state.first_number));
+    }
+};
+
+template<>
+struct Action<Grammar::id_exact_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<IdPredicate>(state.first_number, IdPredicate::Op::Eq));
+    }
+};
+
+// Alt specifier
+template<>
+struct Action<Grammar::alt_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<AltPredicate>(state.current_value));
+    }
+};
+
+// B-factor specifiers
+template<>
+struct Action<Grammar::b_comp_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        BFactorPredicate::Op b_op;
+        switch (state.comp_op) {
+            case ResiPredicate::Op::Lt: b_op = BFactorPredicate::Op::Lt; break;
+            case ResiPredicate::Op::Le: b_op = BFactorPredicate::Op::Le; break;
+            case ResiPredicate::Op::Gt: b_op = BFactorPredicate::Op::Gt; break;
+            case ResiPredicate::Op::Ge: b_op = BFactorPredicate::Op::Ge; break;
+            default: b_op = BFactorPredicate::Op::Eq; break;
+        }
+        state.pushOperand(std::make_shared<BFactorPredicate>(state.first_float, b_op));
+        state.comp_op = ResiPredicate::Op::Eq;
+    }
+};
+
+template<>
+struct Action<Grammar::b_range_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<BFactorPredicate>(state.second_float, state.first_float));
+    }
+};
+
+template<>
+struct Action<Grammar::b_exact_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<BFactorPredicate>(state.first_float, BFactorPredicate::Op::Eq));
+    }
+};
+
+// Fragment specifiers
+template<>
+struct Action<Grammar::frag_comp_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        FragmentPredicate::Op frag_op;
+        switch (state.comp_op) {
+            case ResiPredicate::Op::Lt: frag_op = FragmentPredicate::Op::Lt; break;
+            case ResiPredicate::Op::Le: frag_op = FragmentPredicate::Op::Le; break;
+            case ResiPredicate::Op::Gt: frag_op = FragmentPredicate::Op::Gt; break;
+            case ResiPredicate::Op::Ge: frag_op = FragmentPredicate::Op::Ge; break;
+            default: frag_op = FragmentPredicate::Op::Eq; break;
+        }
+        state.pushOperand(std::make_shared<FragmentPredicate>(
+            static_cast<unsigned int>(state.first_number), frag_op));
+        state.comp_op = ResiPredicate::Op::Eq;
+    }
+};
+
+template<>
+struct Action<Grammar::frag_range_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<FragmentPredicate>(
+            static_cast<unsigned int>(state.second_number),
+            static_cast<unsigned int>(state.first_number)));
+    }
+};
+
+template<>
+struct Action<Grammar::frag_exact_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.pushOperand(std::make_shared<FragmentPredicate>(
+            static_cast<unsigned int>(state.first_number), FragmentPredicate::Op::Eq));
+    }
+};
+
 // Component specifiers
 template<>
 struct Action<Grammar::protein_spec> {
@@ -751,6 +910,16 @@ struct Action<Grammar::macro_spec> {
     }
 };
 
+// Float capture for property predicates (b-factor)
+template<>
+struct Action<Grammar::prop_float> {
+    template<typename ActionInput>
+    static void apply(const ActionInput& in, ParserState& state) {
+        state.second_float = state.first_float;
+        state.first_float = std::stof(in.string());
+    }
+};
+
 // Float capture for distance predicates
 template<>
 struct Action<Grammar::float_num> {
@@ -760,9 +929,9 @@ struct Action<Grammar::float_num> {
     }
 };
 
-// Distance specifiers
+// Distance operator suffixes (infix: selection first, then operator + radius)
 template<>
-struct Action<Grammar::around_spec> {
+struct Action<Grammar::around_suffix> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         auto reference = state.popOperand();
@@ -771,16 +940,16 @@ struct Action<Grammar::around_spec> {
 };
 
 template<>
-struct Action<Grammar::xaround_spec> {
+struct Action<Grammar::expand_suffix> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         auto reference = state.popOperand();
-        state.pushOperand(std::make_shared<XAroundPredicate>(state.current_radius, std::move(reference)));
+        state.pushOperand(std::make_shared<ExpandPredicate>(state.current_radius, std::move(reference)));
     }
 };
 
 template<>
-struct Action<Grammar::beyond_spec> {
+struct Action<Grammar::beyond_suffix> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         auto reference = state.popOperand();
@@ -788,9 +957,9 @@ struct Action<Grammar::beyond_spec> {
     }
 };
 
-// Expansion specifiers
+// Expansion operators (prefix on not_expr)
 template<>
-struct Action<Grammar::byres_spec> {
+struct Action<Grammar::byres_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         auto child = state.popOperand();
@@ -799,7 +968,7 @@ struct Action<Grammar::byres_spec> {
 };
 
 template<>
-struct Action<Grammar::bychain_spec> {
+struct Action<Grammar::bychain_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         auto child = state.popOperand();

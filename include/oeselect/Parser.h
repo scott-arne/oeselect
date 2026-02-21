@@ -39,9 +39,9 @@
  * - `loop` - Loop/coil residues
  *
  * @subsection distance Distance Operators
- * - `around <radius> <selection>` - Atoms within radius of selection
- * - `xaround <radius> <selection>` - Around, excluding reference atoms
- * - `beyond <radius> <selection>` - Atoms outside radius of selection
+ * - `<selection> around <radius>` - Atoms within radius, excluding reference
+ * - `<selection> expand <radius>` - Atoms within radius, including reference
+ * - `<selection> beyond <radius>` - Atoms outside radius of selection
  *
  * @subsection expansion Expansion Operators
  * - `byres <selection>` - Expand to complete residues

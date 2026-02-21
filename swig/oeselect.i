@@ -243,7 +243,7 @@ enum class PredicateType {
     Protein, Ligand, Water, Solvent, Organic, Backbone, Metal,
     Heavy, Hydrogen, PolarHydrogen, NonpolarHydrogen,
     ByRes, ByChain,
-    Around, XAround, Box, XBox, Beyond,
+    Around, Expand, Beyond,
     Helix, Sheet, Turn, Loop,
     True, False
 };

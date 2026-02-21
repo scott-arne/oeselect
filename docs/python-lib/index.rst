@@ -286,6 +286,10 @@ Enum for introspecting selection predicates:
 - ``PredicateType.Chain``
 - ``PredicateType.Elem``
 - ``PredicateType.Index``
+- ``PredicateType.Id``
+- ``PredicateType.Alt``
+- ``PredicateType.BFactor``
+- ``PredicateType.Fragment``
 - ``PredicateType.SecondaryStructure``
 
 **Component Types:**
@@ -308,7 +312,7 @@ Enum for introspecting selection predicates:
 **Distance Operators:**
 
 - ``PredicateType.Around``
-- ``PredicateType.XAround``
+- ``PredicateType.Expand``
 - ``PredicateType.Beyond``
 
 **Expansion Operators:**
@@ -346,6 +350,13 @@ Selection Syntax
    elem C           # Element symbol
    index 0          # Atom index
    index < 100      # Index comparison
+   id 42            # Atom serial number
+   serial 1-100     # Serial number range
+   alt A            # Alternate location
+   b > 30.0         # B-factor comparison
+   bfactor 20-50    # B-factor range (alias)
+   frag 1           # Fragment number
+   fragment 1-3     # Fragment range (alias)
 
 **Component Types:**
 
@@ -391,15 +402,15 @@ Selection Syntax
 
 .. code-block:: text
 
-   around 5 ligand       # Within 5A of ligand
-   xaround 5 ligand      # Same, excluding ligand atoms
-   beyond 10 protein     # More than 10A from protein
+   ligand around 5       # Within 5A of ligand, excluding ligand atoms
+   ligand expand 5       # Within 5A of ligand, including ligand atoms
+   protein beyond 10     # More than 10A from protein
 
 **Expansion Operators:**
 
 .. code-block:: text
 
-   byres around 5 ligand    # Complete residues within 5A of ligand
+   byres ligand expand 5    # Complete residues within 5A of ligand
    bychain chain A          # Expand to complete chain
 
 **Special:**

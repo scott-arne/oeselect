@@ -41,6 +41,10 @@ enum class PredicateType {
     Chain,  ///< Chain identifier matching
     Elem,   ///< Element symbol matching
     Index,  ///< Atom index (supports ranges/comparisons)
+    Id,     ///< Atom serial number (supports ranges/comparisons)
+    Alt,    ///< Alternate location identifier
+    BFactor,    ///< B-factor / temperature factor (supports float ranges/comparisons)
+    Fragment,   ///< Fragment number (supports ranges/comparisons)
     SecondaryStructure,  ///< Secondary structure type
 
     // Molecular component predicates
@@ -63,10 +67,8 @@ enum class PredicateType {
     ByChain,    ///< Expand selection to complete chains
 
     // Distance operators
-    Around,     ///< Atoms within distance of selection
-    XAround,    ///< Around excluding reference atoms
-    Box,        ///< Bounding box distance (faster approximation)
-    XBox,       ///< Box excluding reference atoms
+    Around,     ///< Atoms within distance of selection, excluding reference
+    Expand,     ///< Atoms within distance of selection, including reference
     Beyond,     ///< Atoms outside distance of selection
 
     // Secondary structure types

@@ -3,7 +3,7 @@
  * @brief K-d tree spatial index for efficient distance queries.
  *
  * SpatialIndex provides O(log n) radius queries for distance-based
- * predicates (around, xaround, beyond). It uses nanoflann for the
+ * predicates (around, expand, beyond). It uses nanoflann for the
  * underlying k-d tree implementation.
  */
 
@@ -25,7 +25,7 @@ namespace OESel {
  *
  * This class builds a 3D k-d tree from atom coordinates to enable fast
  * radius queries. It is used internally by distance predicates (around,
- * xaround, beyond) to find atoms within a given distance.
+ * expand, beyond) to find atoms within a given distance.
  *
  * The index is built once on construction and is immutable. If the
  * molecule coordinates change, a new index must be created.

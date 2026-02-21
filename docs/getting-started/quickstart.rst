@@ -229,7 +229,7 @@ Selection Introspection
    #include <iostream>
 
    int main() {
-       auto sele = OESel::OESelection::Parse("protein and around 5 ligand");
+       auto sele = OESel::OESelection::Parse("protein and ligand around 5");
 
        // Get canonical form
        std::cout << sele.ToCanonical() << "\n";

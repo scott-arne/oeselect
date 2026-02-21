@@ -14,15 +14,15 @@
 namespace OESel {
 
 /**
- * @brief Selects atoms within a distance of a reference selection.
+ * @brief Selects atoms within a distance of a reference selection, excluding reference.
  *
  * Matches any atom that is within the specified radius of at least one
  * atom in the reference selection. The reference atoms themselves are
- * included in the result.
+ * excluded from the result.
  *
  * @code
- * // Selection: around 5.0 ligand
- * // Matches all atoms within 5 Angstroms of any ligand atom
+ * // Selection: ligand around 5.0
+ * // Matches atoms within 5A of ligand, but not ligand atoms themselves
  * @endcode
  */
 class AroundPredicate : public Predicate {
@@ -48,29 +48,29 @@ private:
 };
 
 /**
- * @brief Selects atoms within distance, excluding reference atoms.
+ * @brief Selects atoms within a distance of a reference selection, including reference.
  *
- * Similar to AroundPredicate, but excludes atoms that are part of the
- * reference selection. Useful for finding the environment around a
- * selection without including the selection itself.
+ * Matches any atom that is within the specified radius of at least one
+ * atom in the reference selection. The reference atoms themselves are
+ * included in the result.
  *
  * @code
- * // Selection: xaround 5.0 ligand
- * // Matches atoms within 5A of ligand, but not ligand atoms themselves
+ * // Selection: ligand expand 5.0
+ * // Matches all atoms within 5 Angstroms of any ligand atom, including ligand
  * @endcode
  */
-class XAroundPredicate : public Predicate {
+class ExpandPredicate : public Predicate {
 public:
     /**
-     * @brief Construct exclusive around predicate.
+     * @brief Construct expand predicate.
      * @param radius Distance threshold in Angstroms.
      * @param reference Reference selection for distance calculation.
      */
-    XAroundPredicate(float radius, Ptr reference);
+    ExpandPredicate(float radius, Ptr reference);
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::XAround; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::Expand; }
     [[nodiscard]] std::vector<Ptr> Children() const override { return {reference_}; }
 
 private:

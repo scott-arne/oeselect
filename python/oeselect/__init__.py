@@ -39,6 +39,10 @@ Atom properties:
     - chain <id>: Chain identifier
     - elem <symbol>: Element symbol (C, N, O, etc.)
     - index <number>: Atom index (supports ranges and comparisons)
+    - id / serial <number>: Atom serial number (supports ranges and comparisons)
+    - alt <char>: Alternate location identifier
+    - b / bfactor <number>: B-factor (supports float ranges and comparisons)
+    - frag / fragment <number>: Fragment number (supports ranges and comparisons)
 
 Component types:
     - protein: Protein atoms
@@ -63,9 +67,9 @@ Secondary structure:
     - loop: Loop/coil atoms
 
 Distance-based:
-    - around <radius> <selection>: Atoms within radius of selection
-    - xaround <radius> <selection>: Same as around, excluding reference atoms
-    - beyond <radius> <selection>: Atoms outside radius of selection
+    - <selection> around <radius>: Atoms within radius of selection, excluding reference
+    - <selection> expand <radius>: Atoms within radius of selection, including reference
+    - <selection> beyond <radius>: Atoms outside radius of selection
 
 Expansion:
     - byres <selection>: Expand to complete residues
@@ -345,6 +349,10 @@ from .oeselect import (
     PredicateType_Chain,
     PredicateType_Elem,
     PredicateType_Index,
+    PredicateType_Id,
+    PredicateType_Alt,
+    PredicateType_BFactor,
+    PredicateType_Fragment,
     PredicateType_SecondaryStructure,
     PredicateType_Protein,
     PredicateType_Ligand,
@@ -360,9 +368,7 @@ from .oeselect import (
     PredicateType_ByRes,
     PredicateType_ByChain,
     PredicateType_Around,
-    PredicateType_XAround,
-    PredicateType_Box,
-    PredicateType_XBox,
+    PredicateType_Expand,
     PredicateType_Beyond,
     PredicateType_Helix,
     PredicateType_Sheet,
@@ -385,6 +391,10 @@ class PredicateType:
     Chain = PredicateType_Chain
     Elem = PredicateType_Elem
     Index = PredicateType_Index
+    Id = PredicateType_Id
+    Alt = PredicateType_Alt
+    BFactor = PredicateType_BFactor
+    Fragment = PredicateType_Fragment
     SecondaryStructure = PredicateType_SecondaryStructure
     Protein = PredicateType_Protein
     Ligand = PredicateType_Ligand
@@ -400,9 +410,7 @@ class PredicateType:
     ByRes = PredicateType_ByRes
     ByChain = PredicateType_ByChain
     Around = PredicateType_Around
-    XAround = PredicateType_XAround
-    Box = PredicateType_Box
-    XBox = PredicateType_XBox
+    Expand = PredicateType_Expand
     Beyond = PredicateType_Beyond
     Helix = PredicateType_Helix
     Sheet = PredicateType_Sheet

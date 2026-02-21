@@ -1930,15 +1930,15 @@ protected:
 };
 
 TEST_F(DistancePredicateTest, AroundBasic) {
-    // around 3.0 name REF should match REF (at 0) and NEAR (at 1.5)
-    OESelect sel(mol_, "around 3.0 name REF");
+    // name REF around 3.0 should match only NEAR (excludes REF itself)
+    OESelect sel(mol_, "name REF around 3.0");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
         std::string name = atom->GetName();
         bool matches = sel(*atom);
         if (name == "REF") {
-            EXPECT_TRUE(matches) << "REF should be within around selection (distance 0)";
+            EXPECT_FALSE(matches) << "REF should be EXCLUDED from around selection";
         } else if (name == "NEAR") {
             EXPECT_TRUE(matches) << "NEAR should be within around selection (distance 1.5)";
         } else if (name == "MID") {
@@ -1948,45 +1948,12 @@ TEST_F(DistancePredicateTest, AroundBasic) {
         }
         if (matches) count++;
     }
-    EXPECT_EQ(count, 2);  // REF and NEAR
-}
-
-TEST_F(DistancePredicateTest, AroundLargerRadius) {
-    // around 5.0 name REF should match REF, NEAR, and MID
-    OESelect sel(mol_, "around 5.0 name REF");
-
-    int count = 0;
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
-        if (sel(*atom)) count++;
-    }
-    EXPECT_EQ(count, 3);  // REF, NEAR, MID
-}
-
-TEST_F(DistancePredicateTest, XAroundExcludesReference) {
-    // xaround 3.0 name REF should match only NEAR (excludes REF itself)
-    OESelect sel(mol_, "xaround 3.0 name REF");
-
-    int count = 0;
-    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
-        std::string name = atom->GetName();
-        bool matches = sel(*atom);
-        if (name == "REF") {
-            EXPECT_FALSE(matches) << "REF should be EXCLUDED from xaround selection";
-        } else if (name == "NEAR") {
-            EXPECT_TRUE(matches) << "NEAR should be within xaround selection";
-        } else if (name == "MID") {
-            EXPECT_FALSE(matches) << "MID should NOT be within xaround selection";
-        } else if (name == "FAR") {
-            EXPECT_FALSE(matches) << "FAR should NOT be within xaround selection";
-        }
-        if (matches) count++;
-    }
     EXPECT_EQ(count, 1);  // Only NEAR
 }
 
-TEST_F(DistancePredicateTest, XAroundLargerRadius) {
-    // xaround 5.0 name REF should match NEAR and MID (excludes REF)
-    OESelect sel(mol_, "xaround 5.0 name REF");
+TEST_F(DistancePredicateTest, AroundLargerRadius) {
+    // name REF around 5.0 should match NEAR and MID (excludes REF)
+    OESelect sel(mol_, "name REF around 5.0");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
@@ -1995,9 +1962,42 @@ TEST_F(DistancePredicateTest, XAroundLargerRadius) {
     EXPECT_EQ(count, 2);  // NEAR and MID
 }
 
+TEST_F(DistancePredicateTest, ExpandIncludesReference) {
+    // name REF expand 3.0 should match REF and NEAR (includes REF itself)
+    OESelect sel(mol_, "name REF expand 3.0");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        std::string name = atom->GetName();
+        bool matches = sel(*atom);
+        if (name == "REF") {
+            EXPECT_TRUE(matches) << "REF should be INCLUDED in expand selection";
+        } else if (name == "NEAR") {
+            EXPECT_TRUE(matches) << "NEAR should be within expand selection";
+        } else if (name == "MID") {
+            EXPECT_FALSE(matches) << "MID should NOT be within expand selection";
+        } else if (name == "FAR") {
+            EXPECT_FALSE(matches) << "FAR should NOT be within expand selection";
+        }
+        if (matches) count++;
+    }
+    EXPECT_EQ(count, 2);  // REF and NEAR
+}
+
+TEST_F(DistancePredicateTest, ExpandLargerRadius) {
+    // name REF expand 5.0 should match REF, NEAR, and MID
+    OESelect sel(mol_, "name REF expand 5.0");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 3);  // REF, NEAR, MID
+}
+
 TEST_F(DistancePredicateTest, BeyondBasic) {
-    // beyond 3.0 name REF should match MID and FAR
-    OESelect sel(mol_, "beyond 3.0 name REF");
+    // name REF beyond 3.0 should match MID and FAR
+    OESelect sel(mol_, "name REF beyond 3.0");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
@@ -2018,8 +2018,8 @@ TEST_F(DistancePredicateTest, BeyondBasic) {
 }
 
 TEST_F(DistancePredicateTest, BeyondLargerRadius) {
-    // beyond 5.0 name REF should match only FAR
-    OESelect sel(mol_, "beyond 5.0 name REF");
+    // name REF beyond 5.0 should match only FAR
+    OESelect sel(mol_, "name REF beyond 5.0");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
@@ -2029,14 +2029,29 @@ TEST_F(DistancePredicateTest, BeyondLargerRadius) {
 }
 
 TEST_F(DistancePredicateTest, AroundWithParentheses) {
-    // Test around with parenthesized selection
-    OESelect sel(mol_, "around 3.0 (name REF or name NEAR)");
+    // Test around with parenthesized selection (excludes reference)
+    OESelect sel(mol_, "(name REF or name NEAR) around 3.0");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
         if (sel(*atom)) count++;
     }
-    // REF and NEAR are reference atoms
+    // REF and NEAR are reference atoms (excluded from result)
+    // Atoms within 3.0 of REF: NEAR (excluded as ref), MID no
+    // Atoms within 3.0 of NEAR: REF (excluded as ref), MID (2.5 from NEAR)
+    // Non-reference matches: MID only
+    EXPECT_EQ(count, 1);
+}
+
+TEST_F(DistancePredicateTest, ExpandWithParentheses) {
+    // Test expand with parenthesized selection (includes reference)
+    OESelect sel(mol_, "(name REF or name NEAR) expand 3.0");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // REF and NEAR are reference atoms (included in result)
     // Atoms within 3.0 of REF: REF, NEAR
     // Atoms within 3.0 of NEAR: REF, NEAR, MID (MID is 2.5 from NEAR)
     // Union: REF, NEAR, MID
@@ -2044,45 +2059,47 @@ TEST_F(DistancePredicateTest, AroundWithParentheses) {
 }
 
 TEST_F(DistancePredicateTest, AroundFloatingPoint) {
-    // Test floating point radius parsing
-    OESelect sel(mol_, "around 1.6 name REF");
+    // Test floating point radius parsing (around excludes reference)
+    OESelect sel(mol_, "name REF around 1.6");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
         if (sel(*atom)) count++;
     }
-    // REF (0) and NEAR (1.5) are within 1.6
-    EXPECT_EQ(count, 2);
+    // NEAR (1.5) is within 1.6, REF is excluded as reference
+    EXPECT_EQ(count, 1);
 }
 
 TEST_F(DistancePredicateTest, AroundExactBoundary) {
-    // Test boundary case - radius exactly matches distance
-    OESelect sel(mol_, "around 1.5 name REF");
+    // Test boundary case - radius exactly matches distance (around excludes reference)
+    OESelect sel(mol_, "name REF around 1.5");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
         if (sel(*atom)) count++;
     }
-    // REF (0) is within, NEAR (1.5) is on boundary
-    // nanoflann uses <= for radius search
-    EXPECT_GE(count, 1);  // At least REF
+    // REF is excluded as reference, NEAR (1.5) is on boundary
+    // nanoflann uses <= for radius search, so NEAR may or may not match
+    EXPECT_GE(count, 0);
+    EXPECT_LE(count, 1);  // At most NEAR
 }
 
 TEST_F(DistancePredicateTest, AroundCombinedWithAnd) {
     // Test distance predicate combined with logical operator
-    OESelect sel(mol_, "around 5.0 name REF and not name REF");
+    // around already excludes reference, so "and not name REF" is redundant
+    OESelect sel(mol_, "name REF around 5.0 and not name REF");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
         if (sel(*atom)) count++;
     }
-    // Same as xaround - within 5.0 but not REF itself
+    // around excludes REF, within 5.0: NEAR and MID
     EXPECT_EQ(count, 2);  // NEAR and MID
 }
 
 TEST_F(DistancePredicateTest, BeyondAll) {
     // Test beyond with large radius - should match nothing
-    OESelect sel(mol_, "beyond 100.0 name REF");
+    OESelect sel(mol_, "name REF beyond 100.0");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
@@ -2118,34 +2135,35 @@ TEST_F(DistancePredicateTest, AroundMultipleReferenceAtoms) {
         idx++;
     }
 
-    // around 3.0 with REF1 or REF2 as reference
-    OESelect sel(mol2, "around 3.0 (name REF1 or name REF2)");
+    // around 3.0 with REF1 or REF2 as reference (excludes reference atoms)
+    OESelect sel(mol2, "(name REF1 or name REF2) around 3.0");
 
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol2.GetAtoms(); atom; ++atom) {
         if (sel(*atom)) count++;
     }
-    // REF1 (within 0 of itself), REF2 (within 0 of itself), TARGET (2.5 from both)
-    // FAR is 10 from REF1 and 5 from REF2 - too far from both
-    EXPECT_EQ(count, 3);  // REF1, REF2, TARGET
+    // REF1 and REF2 are excluded as reference atoms
+    // TARGET (2.5 from both) is within radius
+    // FAR is 10 from REF1 and 5 from REF2 - too far
+    EXPECT_EQ(count, 1);  // Only TARGET
 }
 
 TEST_F(DistancePredicateTest, ToCanonicalAround) {
-    OESelection sele = OESelection::Parse("around 5.0 name REF");
+    OESelection sele = OESelection::Parse("name REF around 5.0");
     std::string canonical = sele.ToCanonical();
     EXPECT_TRUE(canonical.find("around") != std::string::npos);
     EXPECT_TRUE(canonical.find("5") != std::string::npos);
 }
 
-TEST_F(DistancePredicateTest, ToCanonicalXAround) {
-    OESelection sele = OESelection::Parse("xaround 3.5 name CA");
+TEST_F(DistancePredicateTest, ToCanonicalExpand) {
+    OESelection sele = OESelection::Parse("name CA expand 3.5");
     std::string canonical = sele.ToCanonical();
-    EXPECT_TRUE(canonical.find("xaround") != std::string::npos);
+    EXPECT_TRUE(canonical.find("expand") != std::string::npos);
     EXPECT_TRUE(canonical.find("3.5") != std::string::npos);
 }
 
 TEST_F(DistancePredicateTest, ToCanonicalBeyond) {
-    OESelection sele = OESelection::Parse("beyond 10.0 water");
+    OESelection sele = OESelection::Parse("water beyond 10.0");
     std::string canonical = sele.ToCanonical();
     EXPECT_TRUE(canonical.find("beyond") != std::string::npos);
     EXPECT_TRUE(canonical.find("10") != std::string::npos);
@@ -2451,6 +2469,280 @@ TEST(ExpansionPredicateTest, ByResCaseInsensitive) {
     EXPECT_TRUE(sel_lower(*a2));
     EXPECT_TRUE(sel_upper(*a2));
     EXPECT_TRUE(sel_mixed(*a2));
+}
+
+// ============================================================================
+// Extended Atom Property Tests (id, alt, b, frag)
+// ============================================================================
+
+class AtomPropertyExtendedTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Create a small molecule with varied residue properties
+        mol_.NewAtom(6);   // Atom 0
+        mol_.NewAtom(7);   // Atom 1
+        mol_.NewAtom(8);   // Atom 2
+        mol_.NewAtom(6);   // Atom 3
+        mol_.NewAtom(7);   // Atom 4
+
+        int idx = 0;
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+            res.SetName("ALA");
+            res.SetChainID('A');
+
+            switch (idx) {
+                case 0:
+                    res.SetSerialNumber(1);
+                    res.SetAlternateLocation('A');
+                    res.SetBFactor(10.5);
+                    res.SetFragmentNumber(1);
+                    res.SetResidueNumber(1);
+                    atom->SetName("CA");
+                    break;
+                case 1:
+                    res.SetSerialNumber(2);
+                    res.SetAlternateLocation('A');
+                    res.SetBFactor(25.0);
+                    res.SetFragmentNumber(1);
+                    res.SetResidueNumber(1);
+                    atom->SetName("N");
+                    break;
+                case 2:
+                    res.SetSerialNumber(5);
+                    res.SetAlternateLocation('B');
+                    res.SetBFactor(30.5);
+                    res.SetFragmentNumber(2);
+                    res.SetResidueNumber(2);
+                    atom->SetName("O");
+                    break;
+                case 3:
+                    res.SetSerialNumber(10);
+                    res.SetAlternateLocation('A');
+                    res.SetBFactor(50.0);
+                    res.SetFragmentNumber(2);
+                    res.SetResidueNumber(2);
+                    atom->SetName("C");
+                    break;
+                case 4:
+                    res.SetSerialNumber(15);
+                    res.SetAlternateLocation('B');
+                    res.SetBFactor(75.0);
+                    res.SetFragmentNumber(3);
+                    res.SetResidueNumber(3);
+                    atom->SetName("CB");
+                    break;
+            }
+            OEChem::OEAtomSetResidue(&(*atom), res);
+            idx++;
+        }
+    }
+
+    OEChem::OEGraphMol mol_;
+};
+
+TEST_F(AtomPropertyExtendedTest, IdExact) {
+    OESelect sel(mol_, "id 1");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 1);
+}
+
+TEST_F(AtomPropertyExtendedTest, IdAlias) {
+    OESelect sel_id(mol_, "id 1");
+    OESelect sel_serial(mol_, "serial 1");
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        EXPECT_EQ(sel_id(*atom), sel_serial(*atom));
+    }
+}
+
+TEST_F(AtomPropertyExtendedTest, IdRange) {
+    OESelect sel(mol_, "id 1-10");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Serial numbers 1, 2, 5, 10 are in range 1-10
+    EXPECT_EQ(count, 4);
+}
+
+TEST_F(AtomPropertyExtendedTest, IdGreaterThan) {
+    OESelect sel(mol_, "id > 5");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Serial numbers 10, 15 are > 5
+    EXPECT_EQ(count, 2);
+}
+
+TEST_F(AtomPropertyExtendedTest, AltExact) {
+    OESelect sel(mol_, "alt A");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Atoms 0, 1, 3 have alt A
+    EXPECT_EQ(count, 3);
+}
+
+TEST_F(AtomPropertyExtendedTest, AltExactB) {
+    OESelect sel(mol_, "alt B");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Atoms 2, 4 have alt B
+    EXPECT_EQ(count, 2);
+}
+
+TEST_F(AtomPropertyExtendedTest, BFactorExact) {
+    OESelect sel(mol_, "b 30.5");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 1);  // Only atom 2 has B-factor 30.5
+}
+
+TEST_F(AtomPropertyExtendedTest, BFactorGreaterThan) {
+    OESelect sel(mol_, "b > 20.0");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // B-factors 25.0, 30.5, 50.0, 75.0 are > 20.0
+    EXPECT_EQ(count, 4);
+}
+
+TEST_F(AtomPropertyExtendedTest, BFactorRange) {
+    OESelect sel(mol_, "b 20.0-50.0");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // B-factors 25.0, 30.5, 50.0 are in range 20.0-50.0
+    EXPECT_EQ(count, 3);
+}
+
+TEST_F(AtomPropertyExtendedTest, BFactorAlias) {
+    OESelect sel_b(mol_, "b > 20.0");
+    OESelect sel_bfactor(mol_, "bfactor > 20.0");
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        EXPECT_EQ(sel_b(*atom), sel_bfactor(*atom));
+    }
+}
+
+TEST_F(AtomPropertyExtendedTest, FragExact) {
+    OESelect sel(mol_, "frag 1");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Atoms 0, 1 have fragment 1
+    EXPECT_EQ(count, 2);
+}
+
+TEST_F(AtomPropertyExtendedTest, FragAlias) {
+    OESelect sel_frag(mol_, "frag 1");
+    OESelect sel_fragment(mol_, "fragment 1");
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        EXPECT_EQ(sel_frag(*atom), sel_fragment(*atom));
+    }
+}
+
+TEST_F(AtomPropertyExtendedTest, FragRange) {
+    OESelect sel(mol_, "frag 1-2");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Fragments 1 (atoms 0,1) and 2 (atoms 2,3)
+    EXPECT_EQ(count, 4);
+}
+
+TEST_F(AtomPropertyExtendedTest, IdAndAltCombined) {
+    OESelect sel(mol_, "id 1 and alt A");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // Only atom 0 has id=1 AND alt=A
+    EXPECT_EQ(count, 1);
+}
+
+TEST_F(AtomPropertyExtendedTest, BFactorOrFragCombined) {
+    OESelect sel(mol_, "b > 30.0 or frag 1");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    // b > 30.0: atoms 2(30.5), 3(50.0), 4(75.0)
+    // frag 1: atoms 0, 1
+    // Union: atoms 0, 1, 2, 3, 4
+    EXPECT_EQ(count, 5);
+}
+
+TEST_F(AtomPropertyExtendedTest, IdToCanonical) {
+    OESelection sele = OESelection::Parse("id 42");
+    EXPECT_EQ(sele.ToCanonical(), "id 42");
+}
+
+TEST_F(AtomPropertyExtendedTest, IdRangeToCanonical) {
+    OESelection sele = OESelection::Parse("id 1-100");
+    EXPECT_EQ(sele.ToCanonical(), "id 1-100");
+}
+
+TEST_F(AtomPropertyExtendedTest, IdCompToCanonical) {
+    OESelection sele = OESelection::Parse("id > 50");
+    EXPECT_EQ(sele.ToCanonical(), "id > 50");
+}
+
+TEST_F(AtomPropertyExtendedTest, SerialAliasToCanonical) {
+    OESelection sele = OESelection::Parse("serial 42");
+    EXPECT_EQ(sele.ToCanonical(), "id 42");
+}
+
+TEST_F(AtomPropertyExtendedTest, AltToCanonical) {
+    OESelection sele = OESelection::Parse("alt A");
+    EXPECT_EQ(sele.ToCanonical(), "alt A");
+}
+
+TEST_F(AtomPropertyExtendedTest, BFactorToCanonical) {
+    OESelection sele = OESelection::Parse("b 30.5");
+    EXPECT_EQ(sele.ToCanonical(), "b 30.5");
+}
+
+TEST_F(AtomPropertyExtendedTest, BFactorRangeToCanonical) {
+    OESelection sele = OESelection::Parse("b 20.0-50.0");
+    EXPECT_EQ(sele.ToCanonical(), "b 20-50");
+}
+
+TEST_F(AtomPropertyExtendedTest, BFactorCompToCanonical) {
+    OESelection sele = OESelection::Parse("b > 30.0");
+    EXPECT_EQ(sele.ToCanonical(), "b > 30");
+}
+
+TEST_F(AtomPropertyExtendedTest, BFactorAliasToCanonical) {
+    OESelection sele = OESelection::Parse("bfactor > 30");
+    EXPECT_EQ(sele.ToCanonical(), "b > 30");
+}
+
+TEST_F(AtomPropertyExtendedTest, FragToCanonical) {
+    OESelection sele = OESelection::Parse("frag 1");
+    EXPECT_EQ(sele.ToCanonical(), "frag 1");
+}
+
+TEST_F(AtomPropertyExtendedTest, FragRangeToCanonical) {
+    OESelection sele = OESelection::Parse("frag 1-3");
+    EXPECT_EQ(sele.ToCanonical(), "frag 1-3");
+}
+
+TEST_F(AtomPropertyExtendedTest, FragmentAliasToCanonical) {
+    OESelection sele = OESelection::Parse("fragment 1");
+    EXPECT_EQ(sele.ToCanonical(), "frag 1");
 }
 
 TEST(ExpansionPredicateTest, ByChainCaseInsensitive) {
