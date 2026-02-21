@@ -165,8 +165,8 @@ The `//chain/resi/name` syntax provides compact selections. Omitted fields act a
 The `+` separator allows matching multiple values in a single keyword:
 
 ```
-name CA+CB+N       atoms named CA, CB, or N
-resn ALA+GLY+VAL   residues ALA, GLY, or VAL
+name CA+CB+N       atoms named CA, CB, or N    equal to: (name CA or name CB or name N)
+resn ALA+GLY+VAL   residues ALA, GLY, or VAL   equal to: (resn ALA or resn GLY or resn VAL)
 ```
 
 ## License

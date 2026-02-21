@@ -239,7 +239,8 @@ namespace OESel {
 
 enum class PredicateType {
     And, Or, Not, XOr,
-    Name, Resn, Resi, Chain, Elem, Index, SecondaryStructure,
+    Name, Resn, Resi, Chain, Elem, Index, Id, Alt, BFactor, Fragment,
+    SecondaryStructure,
     Protein, Ligand, Water, Solvent, Organic, Backbone, Metal,
     Heavy, Hydrogen, PolarHydrogen, NonpolarHydrogen,
     ByRes, ByChain,

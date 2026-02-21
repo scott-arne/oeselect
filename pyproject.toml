@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "oeselect"
-version = "1.0.0"
+version = "1.0.1"
 description = "High-performance PyMOL selection language for OpenEye Toolkits"
 license = "MIT"
 license-files = ["LICENSE"]
