@@ -30,7 +30,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::And; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::AND; }
     [[nodiscard]] std::vector<Ptr> Children() const override { return children_; }
 
 private:
@@ -53,7 +53,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Or; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::OR; }
     [[nodiscard]] std::vector<Ptr> Children() const override { return children_; }
 
 private:
@@ -75,7 +75,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Not; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::NOT; }
     [[nodiscard]] std::vector<Ptr> Children() const override { return {child_}; }
 
 private:
@@ -98,7 +98,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::XOr; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::XOR; }
     [[nodiscard]] std::vector<Ptr> Children() const override { return children_; }
 
 private:

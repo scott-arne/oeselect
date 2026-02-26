@@ -146,7 +146,7 @@ private:
  * @return Set of parsed Selector objects.
  * @throws SelectionError if any selector has invalid format.
  */
-std::set<Selector> ParseSelectorSet(const std::string& selector_str);
+std::set<Selector> parse_selector_set(const std::string& selector_str);
 
 /**
  * @brief Extract unique Selector objects from a molecule.
@@ -157,7 +157,7 @@ std::set<Selector> ParseSelectorSet(const std::string& selector_str);
  * @param mol The molecule to extract selectors from.
  * @return Set of unique Selector objects.
  */
-std::set<Selector> MolToSelectorSet(const OEChem::OEMolBase& mol);
+std::set<Selector> mol_to_selector_set(const OEChem::OEMolBase& mol);
 
 /**
  * @brief Extract unique selector strings for atoms matching a selection.
@@ -169,7 +169,7 @@ std::set<Selector> MolToSelectorSet(const OEChem::OEMolBase& mol);
  * @param selection_str PyMOL-style selection string.
  * @return Set of unique selector strings.
  */
-std::set<std::string> StrSelectorSet(
+std::set<std::string> str_selector_set(
     OEChem::OEMolBase& mol, const std::string& selection_str);
 
 /**
@@ -178,7 +178,7 @@ std::set<std::string> StrSelectorSet(
  * @param atom The atom to extract selector from.
  * @return Selector string in "NAME:NUMBER:ICODE:CHAIN" format.
  */
-std::string GetSelectorString(const OEChem::OEAtomBase& atom);
+std::string get_selector_string(const OEChem::OEAtomBase& atom);
 
 }  // namespace OESel
 

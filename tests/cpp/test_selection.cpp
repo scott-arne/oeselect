@@ -902,7 +902,7 @@ TEST(TaggerTest, TagMoleculeWater) {
     EXPECT_TRUE(Tagger::IsTagged(mol));
 
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Water));
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::WATER));
     }
 }
 
@@ -923,7 +923,7 @@ TEST(TaggerTest, TagMoleculeWaterVariants) {
         Tagger::TagMolecule(mol);
 
         for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Water))
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::WATER))
                 << "Failed for water residue name: " << water_name;
         }
     }
@@ -945,7 +945,7 @@ TEST(TaggerTest, TagMoleculeProtein) {
     EXPECT_TRUE(Tagger::IsTagged(mol));
 
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Protein));
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::PROTEIN));
     }
 }
 
@@ -969,7 +969,7 @@ TEST(TaggerTest, TagMoleculeMultipleAminoAcids) {
         Tagger::TagMolecule(mol);
 
         for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Protein))
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::PROTEIN))
                 << "Failed for amino acid: " << aa_name;
         }
     }
@@ -988,7 +988,7 @@ TEST(TaggerTest, TagMoleculeNucleic) {
     Tagger::TagMolecule(mol);
 
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Nucleic));
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::NUCLEIC));
     }
 }
 
@@ -1008,7 +1008,7 @@ TEST(TaggerTest, TagMoleculeNucleotideVariants) {
         Tagger::TagMolecule(mol);
 
         for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Nucleic))
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::NUCLEIC))
                 << "Failed for nucleotide: " << nuc_name;
         }
     }
@@ -1027,7 +1027,7 @@ TEST(TaggerTest, TagMoleculeCofactor) {
     Tagger::TagMolecule(mol);
 
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Cofactor));
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::COFACTOR));
     }
 }
 
@@ -1047,7 +1047,7 @@ TEST(TaggerTest, TagMoleculeCofactorVariants) {
         Tagger::TagMolecule(mol);
 
         for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Cofactor))
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::COFACTOR))
                 << "Failed for cofactor: " << cof_name;
         }
     }
@@ -1067,7 +1067,7 @@ TEST(TaggerTest, TagMoleculeLigand) {
     Tagger::TagMolecule(mol);
 
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Ligand));
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::LIGAND));
     }
 }
 
@@ -1084,7 +1084,7 @@ TEST(TaggerTest, TagMoleculeSolvent) {
     Tagger::TagMolecule(mol);
 
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Solvent));
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::SOLVENT));
     }
 }
 
@@ -1146,13 +1146,13 @@ TEST(TaggerTest, MixedComponentMolecule) {
     atomIdx = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
         if (atomIdx < 7) {
-            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Protein))
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::PROTEIN))
                 << "Atom " << atomIdx << " should be Protein";
         } else if (atomIdx < 8) {
-            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Water))
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::WATER))
                 << "Atom " << atomIdx << " should be Water";
         } else {
-            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Ligand))
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::LIGAND))
                 << "Atom " << atomIdx << " should be Ligand";
         }
         atomIdx++;
@@ -1175,9 +1175,9 @@ TEST(TaggerTest, HasComponentReturnsFalseForUntaggedAtom) {
 
     // Don't tag the molecule
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-        EXPECT_FALSE(Tagger::HasComponent(*atom, ComponentFlag::Protein));
-        EXPECT_FALSE(Tagger::HasComponent(*atom, ComponentFlag::Water));
-        EXPECT_FALSE(Tagger::HasComponent(*atom, ComponentFlag::Ligand));
+        EXPECT_FALSE(Tagger::HasComponent(*atom, ComponentFlag::PROTEIN));
+        EXPECT_FALSE(Tagger::HasComponent(*atom, ComponentFlag::WATER));
+        EXPECT_FALSE(Tagger::HasComponent(*atom, ComponentFlag::LIGAND));
     }
 }
 
@@ -1198,7 +1198,7 @@ TEST(TaggerTest, ProtonationStateVariants) {
         Tagger::TagMolecule(mol);
 
         for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
-            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::Protein))
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::PROTEIN))
                 << "Failed for protonation variant: " << res_name;
         }
     }

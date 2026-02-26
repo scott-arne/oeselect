@@ -296,7 +296,7 @@ struct ParserState {
     // Numeric state for resi/index
     int first_number = 0;
     int second_number = 0;
-    ResiPredicate::Op comp_op = ResiPredicate::Op::Eq;
+    ResiPredicate::Op comp_op = ResiPredicate::Op::EQ;
 
     // Float state for b-factor
     float first_float = 0.0f;
@@ -317,21 +317,21 @@ struct ParserState {
         contexts.push(OpContext{});
     }
 
-    OpContext& currentContext() { return contexts.top(); }
+    OpContext& CurrentContext() { return contexts.top(); }
 
-    void pushContext() { contexts.push(OpContext{}); }
+    void PushContext() { contexts.push(OpContext{}); }
 
-    void popContext() {
+    void PopContext() {
         if (contexts.size() > 1) {
             contexts.pop();
         }
     }
 
-    void pushOperand(Predicate::Ptr pred) {
+    void PushOperand(Predicate::Ptr pred) {
         operands.push(std::move(pred));
     }
 
-    Predicate::Ptr popOperand() {
+    Predicate::Ptr PopOperand() {
         if (operands.empty()) {
             throw SelectionError("Internal parser error: operand stack underflow");
         }
@@ -340,7 +340,7 @@ struct ParserState {
         return pred;
     }
 
-    Predicate::Ptr getResult() {
+    Predicate::Ptr GetResult() {
         if (operands.empty()) {
             throw SelectionError("Internal parser error: no result");
         }
@@ -357,7 +357,7 @@ class TruePredicateImpl : public Predicate {
 public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return true; }
     [[nodiscard]] std::string ToCanonical() const override { return "all"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::True; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::TRUE; }
 };
 
 /// Always-false predicate for 'none' keyword
@@ -365,7 +365,7 @@ class FalsePredicateImpl : public Predicate {
 public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return false; }
     [[nodiscard]] std::string ToCanonical() const override { return "none"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::False; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::FALSE; }
 };
 
 // ============================================================================
@@ -413,14 +413,14 @@ struct Action<Grammar::name_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         if (state.value_list.size() == 1) {
-            state.pushOperand(std::make_shared<NamePredicate>(state.value_list[0]));
+            state.PushOperand(std::make_shared<NamePredicate>(state.value_list[0]));
         } else {
             // Multiple values become OR predicate
             std::vector<Predicate::Ptr> children;
             for (const auto& val : state.value_list) {
                 children.push_back(std::make_shared<NamePredicate>(val));
             }
-            state.pushOperand(std::make_shared<OrPredicate>(std::move(children)));
+            state.PushOperand(std::make_shared<OrPredicate>(std::move(children)));
         }
         state.value_list.clear();
     }
@@ -431,13 +431,13 @@ struct Action<Grammar::resn_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         if (state.value_list.size() == 1) {
-            state.pushOperand(std::make_shared<ResnPredicate>(state.value_list[0]));
+            state.PushOperand(std::make_shared<ResnPredicate>(state.value_list[0]));
         } else {
             std::vector<Predicate::Ptr> children;
             for (const auto& val : state.value_list) {
                 children.push_back(std::make_shared<ResnPredicate>(val));
             }
-            state.pushOperand(std::make_shared<OrPredicate>(std::move(children)));
+            state.PushOperand(std::make_shared<OrPredicate>(std::move(children)));
         }
         state.value_list.clear();
     }
@@ -458,7 +458,7 @@ template<>
 struct Action<Grammar::comp_ge> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.comp_op = ResiPredicate::Op::Ge;
+        state.comp_op = ResiPredicate::Op::GE;
     }
 };
 
@@ -466,7 +466,7 @@ template<>
 struct Action<Grammar::comp_le> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.comp_op = ResiPredicate::Op::Le;
+        state.comp_op = ResiPredicate::Op::LE;
     }
 };
 
@@ -474,7 +474,7 @@ template<>
 struct Action<Grammar::comp_gt> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.comp_op = ResiPredicate::Op::Gt;
+        state.comp_op = ResiPredicate::Op::GT;
     }
 };
 
@@ -482,7 +482,7 @@ template<>
 struct Action<Grammar::comp_lt> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.comp_op = ResiPredicate::Op::Lt;
+        state.comp_op = ResiPredicate::Op::LT;
     }
 };
 
@@ -491,8 +491,8 @@ template<>
 struct Action<Grammar::resi_comp_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<ResiPredicate>(state.first_number, state.comp_op));
-        state.comp_op = ResiPredicate::Op::Eq;
+        state.PushOperand(std::make_shared<ResiPredicate>(state.first_number, state.comp_op));
+        state.comp_op = ResiPredicate::Op::EQ;
     }
 };
 
@@ -500,7 +500,7 @@ template<>
 struct Action<Grammar::resi_range_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<ResiPredicate>(state.second_number, state.first_number));
+        state.PushOperand(std::make_shared<ResiPredicate>(state.second_number, state.first_number));
     }
 };
 
@@ -508,7 +508,7 @@ template<>
 struct Action<Grammar::resi_exact_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<ResiPredicate>(state.first_number, ResiPredicate::Op::Eq));
+        state.PushOperand(std::make_shared<ResiPredicate>(state.first_number, ResiPredicate::Op::EQ));
     }
 };
 
@@ -525,7 +525,7 @@ template<>
 struct Action<Grammar::chain_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<ChainPredicate>(state.current_value));
+        state.PushOperand(std::make_shared<ChainPredicate>(state.current_value));
     }
 };
 
@@ -541,7 +541,7 @@ template<>
 struct Action<Grammar::elem_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<ElemPredicate>(state.current_value));
+        state.PushOperand(std::make_shared<ElemPredicate>(state.current_value));
     }
 };
 
@@ -552,15 +552,15 @@ struct Action<Grammar::index_comp_spec> {
     static void apply(const ActionInput&, ParserState& state) {
         IndexPredicate::Op index_op;
         switch (state.comp_op) {
-            case ResiPredicate::Op::Lt: index_op = IndexPredicate::Op::Lt; break;
-            case ResiPredicate::Op::Le: index_op = IndexPredicate::Op::Le; break;
-            case ResiPredicate::Op::Gt: index_op = IndexPredicate::Op::Gt; break;
-            case ResiPredicate::Op::Ge: index_op = IndexPredicate::Op::Ge; break;
-            default: index_op = IndexPredicate::Op::Eq; break;
+            case ResiPredicate::Op::LT: index_op = IndexPredicate::Op::LT; break;
+            case ResiPredicate::Op::LE: index_op = IndexPredicate::Op::LE; break;
+            case ResiPredicate::Op::GT: index_op = IndexPredicate::Op::GT; break;
+            case ResiPredicate::Op::GE: index_op = IndexPredicate::Op::GE; break;
+            default: index_op = IndexPredicate::Op::EQ; break;
         }
-        state.pushOperand(std::make_shared<IndexPredicate>(
+        state.PushOperand(std::make_shared<IndexPredicate>(
             static_cast<unsigned int>(state.first_number), index_op));
-        state.comp_op = ResiPredicate::Op::Eq;
+        state.comp_op = ResiPredicate::Op::EQ;
     }
 };
 
@@ -568,7 +568,7 @@ template<>
 struct Action<Grammar::index_range_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<IndexPredicate>(
+        state.PushOperand(std::make_shared<IndexPredicate>(
             static_cast<unsigned int>(state.second_number),
             static_cast<unsigned int>(state.first_number)));
     }
@@ -578,8 +578,8 @@ template<>
 struct Action<Grammar::index_exact_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<IndexPredicate>(
-            static_cast<unsigned int>(state.first_number), IndexPredicate::Op::Eq));
+        state.PushOperand(std::make_shared<IndexPredicate>(
+            static_cast<unsigned int>(state.first_number), IndexPredicate::Op::EQ));
     }
 };
 
@@ -590,14 +590,14 @@ struct Action<Grammar::id_comp_spec> {
     static void apply(const ActionInput&, ParserState& state) {
         IdPredicate::Op id_op;
         switch (state.comp_op) {
-            case ResiPredicate::Op::Lt: id_op = IdPredicate::Op::Lt; break;
-            case ResiPredicate::Op::Le: id_op = IdPredicate::Op::Le; break;
-            case ResiPredicate::Op::Gt: id_op = IdPredicate::Op::Gt; break;
-            case ResiPredicate::Op::Ge: id_op = IdPredicate::Op::Ge; break;
-            default: id_op = IdPredicate::Op::Eq; break;
+            case ResiPredicate::Op::LT: id_op = IdPredicate::Op::LT; break;
+            case ResiPredicate::Op::LE: id_op = IdPredicate::Op::LE; break;
+            case ResiPredicate::Op::GT: id_op = IdPredicate::Op::GT; break;
+            case ResiPredicate::Op::GE: id_op = IdPredicate::Op::GE; break;
+            default: id_op = IdPredicate::Op::EQ; break;
         }
-        state.pushOperand(std::make_shared<IdPredicate>(state.first_number, id_op));
-        state.comp_op = ResiPredicate::Op::Eq;
+        state.PushOperand(std::make_shared<IdPredicate>(state.first_number, id_op));
+        state.comp_op = ResiPredicate::Op::EQ;
     }
 };
 
@@ -605,7 +605,7 @@ template<>
 struct Action<Grammar::id_range_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<IdPredicate>(state.second_number, state.first_number));
+        state.PushOperand(std::make_shared<IdPredicate>(state.second_number, state.first_number));
     }
 };
 
@@ -613,7 +613,7 @@ template<>
 struct Action<Grammar::id_exact_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<IdPredicate>(state.first_number, IdPredicate::Op::Eq));
+        state.PushOperand(std::make_shared<IdPredicate>(state.first_number, IdPredicate::Op::EQ));
     }
 };
 
@@ -622,7 +622,7 @@ template<>
 struct Action<Grammar::alt_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<AltPredicate>(state.current_value));
+        state.PushOperand(std::make_shared<AltPredicate>(state.current_value));
     }
 };
 
@@ -633,14 +633,14 @@ struct Action<Grammar::b_comp_spec> {
     static void apply(const ActionInput&, ParserState& state) {
         BFactorPredicate::Op b_op;
         switch (state.comp_op) {
-            case ResiPredicate::Op::Lt: b_op = BFactorPredicate::Op::Lt; break;
-            case ResiPredicate::Op::Le: b_op = BFactorPredicate::Op::Le; break;
-            case ResiPredicate::Op::Gt: b_op = BFactorPredicate::Op::Gt; break;
-            case ResiPredicate::Op::Ge: b_op = BFactorPredicate::Op::Ge; break;
-            default: b_op = BFactorPredicate::Op::Eq; break;
+            case ResiPredicate::Op::LT: b_op = BFactorPredicate::Op::LT; break;
+            case ResiPredicate::Op::LE: b_op = BFactorPredicate::Op::LE; break;
+            case ResiPredicate::Op::GT: b_op = BFactorPredicate::Op::GT; break;
+            case ResiPredicate::Op::GE: b_op = BFactorPredicate::Op::GE; break;
+            default: b_op = BFactorPredicate::Op::EQ; break;
         }
-        state.pushOperand(std::make_shared<BFactorPredicate>(state.first_float, b_op));
-        state.comp_op = ResiPredicate::Op::Eq;
+        state.PushOperand(std::make_shared<BFactorPredicate>(state.first_float, b_op));
+        state.comp_op = ResiPredicate::Op::EQ;
     }
 };
 
@@ -648,7 +648,7 @@ template<>
 struct Action<Grammar::b_range_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<BFactorPredicate>(state.second_float, state.first_float));
+        state.PushOperand(std::make_shared<BFactorPredicate>(state.second_float, state.first_float));
     }
 };
 
@@ -656,7 +656,7 @@ template<>
 struct Action<Grammar::b_exact_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<BFactorPredicate>(state.first_float, BFactorPredicate::Op::Eq));
+        state.PushOperand(std::make_shared<BFactorPredicate>(state.first_float, BFactorPredicate::Op::EQ));
     }
 };
 
@@ -667,15 +667,15 @@ struct Action<Grammar::frag_comp_spec> {
     static void apply(const ActionInput&, ParserState& state) {
         FragmentPredicate::Op frag_op;
         switch (state.comp_op) {
-            case ResiPredicate::Op::Lt: frag_op = FragmentPredicate::Op::Lt; break;
-            case ResiPredicate::Op::Le: frag_op = FragmentPredicate::Op::Le; break;
-            case ResiPredicate::Op::Gt: frag_op = FragmentPredicate::Op::Gt; break;
-            case ResiPredicate::Op::Ge: frag_op = FragmentPredicate::Op::Ge; break;
-            default: frag_op = FragmentPredicate::Op::Eq; break;
+            case ResiPredicate::Op::LT: frag_op = FragmentPredicate::Op::LT; break;
+            case ResiPredicate::Op::LE: frag_op = FragmentPredicate::Op::LE; break;
+            case ResiPredicate::Op::GT: frag_op = FragmentPredicate::Op::GT; break;
+            case ResiPredicate::Op::GE: frag_op = FragmentPredicate::Op::GE; break;
+            default: frag_op = FragmentPredicate::Op::EQ; break;
         }
-        state.pushOperand(std::make_shared<FragmentPredicate>(
+        state.PushOperand(std::make_shared<FragmentPredicate>(
             static_cast<unsigned int>(state.first_number), frag_op));
-        state.comp_op = ResiPredicate::Op::Eq;
+        state.comp_op = ResiPredicate::Op::EQ;
     }
 };
 
@@ -683,7 +683,7 @@ template<>
 struct Action<Grammar::frag_range_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<FragmentPredicate>(
+        state.PushOperand(std::make_shared<FragmentPredicate>(
             static_cast<unsigned int>(state.second_number),
             static_cast<unsigned int>(state.first_number)));
     }
@@ -693,8 +693,8 @@ template<>
 struct Action<Grammar::frag_exact_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<FragmentPredicate>(
-            static_cast<unsigned int>(state.first_number), FragmentPredicate::Op::Eq));
+        state.PushOperand(std::make_shared<FragmentPredicate>(
+            static_cast<unsigned int>(state.first_number), FragmentPredicate::Op::EQ));
     }
 };
 
@@ -703,7 +703,7 @@ template<>
 struct Action<Grammar::protein_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<ProteinPredicate>());
+        state.PushOperand(std::make_shared<ProteinPredicate>());
     }
 };
 
@@ -711,7 +711,7 @@ template<>
 struct Action<Grammar::ligand_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<LigandPredicate>());
+        state.PushOperand(std::make_shared<LigandPredicate>());
     }
 };
 
@@ -719,7 +719,7 @@ template<>
 struct Action<Grammar::water_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<WaterPredicate>());
+        state.PushOperand(std::make_shared<WaterPredicate>());
     }
 };
 
@@ -727,7 +727,7 @@ template<>
 struct Action<Grammar::solvent_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<SolventPredicate>());
+        state.PushOperand(std::make_shared<SolventPredicate>());
     }
 };
 
@@ -735,7 +735,7 @@ template<>
 struct Action<Grammar::organic_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<OrganicPredicate>());
+        state.PushOperand(std::make_shared<OrganicPredicate>());
     }
 };
 
@@ -743,7 +743,7 @@ template<>
 struct Action<Grammar::backbone_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<BackbonePredicate>());
+        state.PushOperand(std::make_shared<BackbonePredicate>());
     }
 };
 
@@ -751,7 +751,7 @@ template<>
 struct Action<Grammar::sidechain_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<SidechainPredicate>());
+        state.PushOperand(std::make_shared<SidechainPredicate>());
     }
 };
 
@@ -759,7 +759,7 @@ template<>
 struct Action<Grammar::metal_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<MetalPredicate>());
+        state.PushOperand(std::make_shared<MetalPredicate>());
     }
 };
 
@@ -768,7 +768,7 @@ template<>
 struct Action<Grammar::heavy_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<HeavyPredicate>());
+        state.PushOperand(std::make_shared<HeavyPredicate>());
     }
 };
 
@@ -776,7 +776,7 @@ template<>
 struct Action<Grammar::hydrogen_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<HydrogenPredicate>());
+        state.PushOperand(std::make_shared<HydrogenPredicate>());
     }
 };
 
@@ -784,7 +784,7 @@ template<>
 struct Action<Grammar::polar_hydrogen_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<PolarHydrogenPredicate>());
+        state.PushOperand(std::make_shared<PolarHydrogenPredicate>());
     }
 };
 
@@ -792,7 +792,7 @@ template<>
 struct Action<Grammar::nonpolar_hydrogen_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<NonpolarHydrogenPredicate>());
+        state.PushOperand(std::make_shared<NonpolarHydrogenPredicate>());
     }
 };
 
@@ -801,7 +801,7 @@ template<>
 struct Action<Grammar::helix_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<HelixPredicate>());
+        state.PushOperand(std::make_shared<HelixPredicate>());
     }
 };
 
@@ -809,7 +809,7 @@ template<>
 struct Action<Grammar::sheet_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<SheetPredicate>());
+        state.PushOperand(std::make_shared<SheetPredicate>());
     }
 };
 
@@ -817,7 +817,7 @@ template<>
 struct Action<Grammar::turn_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<TurnPredicate>());
+        state.PushOperand(std::make_shared<TurnPredicate>());
     }
 };
 
@@ -825,7 +825,7 @@ template<>
 struct Action<Grammar::loop_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<LoopPredicate>());
+        state.PushOperand(std::make_shared<LoopPredicate>());
     }
 };
 
@@ -834,7 +834,7 @@ template<>
 struct Action<Grammar::all_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<TruePredicateImpl>());
+        state.PushOperand(std::make_shared<TruePredicateImpl>());
     }
 };
 
@@ -842,7 +842,7 @@ template<>
 struct Action<Grammar::none_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushOperand(std::make_shared<FalsePredicateImpl>());
+        state.PushOperand(std::make_shared<FalsePredicateImpl>());
     }
 };
 
@@ -894,18 +894,18 @@ struct Action<Grammar::macro_spec> {
         }
         if (state.macro_resi >= 0) {
             conditions.push_back(std::make_shared<ResiPredicate>(
-                state.macro_resi, ResiPredicate::Op::Eq));
+                state.macro_resi, ResiPredicate::Op::EQ));
         }
         if (!state.macro_name.empty()) {
             conditions.push_back(std::make_shared<NamePredicate>(state.macro_name));
         }
 
         if (conditions.empty()) {
-            state.pushOperand(std::make_shared<TruePredicateImpl>());
+            state.PushOperand(std::make_shared<TruePredicateImpl>());
         } else if (conditions.size() == 1) {
-            state.pushOperand(std::move(conditions[0]));
+            state.PushOperand(std::move(conditions[0]));
         } else {
-            state.pushOperand(std::make_shared<AndPredicate>(std::move(conditions)));
+            state.PushOperand(std::make_shared<AndPredicate>(std::move(conditions)));
         }
     }
 };
@@ -934,8 +934,8 @@ template<>
 struct Action<Grammar::around_suffix> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        auto reference = state.popOperand();
-        state.pushOperand(std::make_shared<AroundPredicate>(state.current_radius, std::move(reference)));
+        auto reference = state.PopOperand();
+        state.PushOperand(std::make_shared<AroundPredicate>(state.current_radius, std::move(reference)));
     }
 };
 
@@ -943,8 +943,8 @@ template<>
 struct Action<Grammar::expand_suffix> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        auto reference = state.popOperand();
-        state.pushOperand(std::make_shared<ExpandPredicate>(state.current_radius, std::move(reference)));
+        auto reference = state.PopOperand();
+        state.PushOperand(std::make_shared<ExpandPredicate>(state.current_radius, std::move(reference)));
     }
 };
 
@@ -952,8 +952,8 @@ template<>
 struct Action<Grammar::beyond_suffix> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        auto reference = state.popOperand();
-        state.pushOperand(std::make_shared<BeyondPredicate>(state.current_radius, std::move(reference)));
+        auto reference = state.PopOperand();
+        state.PushOperand(std::make_shared<BeyondPredicate>(state.current_radius, std::move(reference)));
     }
 };
 
@@ -962,8 +962,8 @@ template<>
 struct Action<Grammar::byres_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        auto child = state.popOperand();
-        state.pushOperand(std::make_shared<ByResPredicate>(std::move(child)));
+        auto child = state.PopOperand();
+        state.PushOperand(std::make_shared<ByResPredicate>(std::move(child)));
     }
 };
 
@@ -971,8 +971,8 @@ template<>
 struct Action<Grammar::bychain_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        auto child = state.popOperand();
-        state.pushOperand(std::make_shared<ByChainPredicate>(std::move(child)));
+        auto child = state.PopOperand();
+        state.PushOperand(std::make_shared<ByChainPredicate>(std::move(child)));
     }
 };
 
@@ -981,7 +981,7 @@ template<>
 struct Action<Grammar::open_paren> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.pushContext();
+        state.PushContext();
     }
 };
 
@@ -989,7 +989,7 @@ template<>
 struct Action<Grammar::close_paren> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.popContext();
+        state.PopContext();
     }
 };
 
@@ -998,7 +998,7 @@ template<>
 struct Action<Grammar::not_op> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.currentContext().not_count++;
+        state.CurrentContext().not_count++;
     }
 };
 
@@ -1006,7 +1006,7 @@ template<>
 struct Action<Grammar::and_op> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.currentContext().and_count++;
+        state.CurrentContext().and_count++;
     }
 };
 
@@ -1014,7 +1014,7 @@ template<>
 struct Action<Grammar::or_op> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.currentContext().or_count++;
+        state.CurrentContext().or_count++;
     }
 };
 
@@ -1022,7 +1022,7 @@ template<>
 struct Action<Grammar::xor_op> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        state.currentContext().xor_count++;
+        state.CurrentContext().xor_count++;
     }
 };
 
@@ -1031,14 +1031,14 @@ template<>
 struct Action<Grammar::not_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        if (auto& ctx = state.currentContext(); ctx.not_count > 0) {
+        if (auto& ctx = state.CurrentContext(); ctx.not_count > 0) {
             const int not_count = ctx.not_count;
             ctx.not_count = 0;
 
             if (!state.operands.empty()) {
                 for (int i = 0; i < not_count; ++i) {
-                    auto operand = state.popOperand();
-                    state.pushOperand(std::make_shared<NotPredicate>(std::move(operand)));
+                    auto operand = state.PopOperand();
+                    state.PushOperand(std::make_shared<NotPredicate>(std::move(operand)));
                 }
             }
         }
@@ -1050,17 +1050,17 @@ template<>
 struct Action<Grammar::and_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        if (auto& ctx = state.currentContext(); ctx.and_count > 0) {
+        if (auto& ctx = state.CurrentContext(); ctx.and_count > 0) {
             const int and_count = ctx.and_count;
             ctx.and_count = 0;
 
             if (state.operands.size() >= static_cast<size_t>(and_count) + 1) {
                 std::vector<Predicate::Ptr> children;
                 for (int i = 0; i <= and_count; ++i) {
-                    children.push_back(state.popOperand());
+                    children.push_back(state.PopOperand());
                 }
                 std::reverse(children.begin(), children.end());
-                state.pushOperand(std::make_shared<AndPredicate>(std::move(children)));
+                state.PushOperand(std::make_shared<AndPredicate>(std::move(children)));
             }
         }
     }
@@ -1071,17 +1071,17 @@ template<>
 struct Action<Grammar::or_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        if (auto& ctx = state.currentContext(); ctx.or_count > 0) {
+        if (auto& ctx = state.CurrentContext(); ctx.or_count > 0) {
             const int or_count = ctx.or_count;
             ctx.or_count = 0;
 
             if (state.operands.size() >= static_cast<size_t>(or_count) + 1) {
                 std::vector<Predicate::Ptr> children;
                 for (int i = 0; i <= or_count; ++i) {
-                    children.push_back(state.popOperand());
+                    children.push_back(state.PopOperand());
                 }
                 std::reverse(children.begin(), children.end());
-                state.pushOperand(std::make_shared<OrPredicate>(std::move(children)));
+                state.PushOperand(std::make_shared<OrPredicate>(std::move(children)));
             }
         }
     }
@@ -1092,17 +1092,17 @@ template<>
 struct Action<Grammar::xor_expr> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
-        if (auto& ctx = state.currentContext(); ctx.xor_count > 0) {
+        if (auto& ctx = state.CurrentContext(); ctx.xor_count > 0) {
             const int xor_count = ctx.xor_count;
             ctx.xor_count = 0;
 
             if (state.operands.size() >= static_cast<size_t>(xor_count) + 1) {
                 std::vector<Predicate::Ptr> children;
                 for (int i = 0; i <= xor_count; ++i) {
-                    children.push_back(state.popOperand());
+                    children.push_back(state.PopOperand());
                 }
                 std::reverse(children.begin(), children.end());
-                state.pushOperand(std::make_shared<XOrPredicate>(std::move(children)));
+                state.PushOperand(std::make_shared<XOrPredicate>(std::move(children)));
             }
         }
     }
@@ -1112,7 +1112,7 @@ struct Action<Grammar::xor_expr> {
 // Public API
 // ============================================================================
 
-Predicate::Ptr ParseSelection(const std::string& sele) {
+Predicate::Ptr parse_selection(const std::string& sele) {
     if (sele.empty()) {
         return std::make_shared<TruePredicateImpl>();
     }
@@ -1132,7 +1132,7 @@ Predicate::Ptr ParseSelection(const std::string& sele) {
         throw SelectionError("No predicate created for: " + sele);
     }
 
-    return state.getResult();
+    return state.GetResult();
 }
 
 }  // namespace OESel

@@ -15,14 +15,14 @@ namespace OESel {
  * @brief Exception thrown when selection parsing or validation fails.
  *
  * This exception is thrown by OESelection::Parse() when the input string
- * contains invalid syntax. The optional position() method indicates where
+ * contains invalid syntax. The optional Position() method indicates where
  * in the input string the error occurred.
  *
  * @code
  * try {
  *     auto sele = OESelection::Parse("invalid_keyword foo");
  * } catch (const SelectionError& e) {
- *     std::cerr << "Parse error at position " << e.position()
+ *     std::cerr << "Parse error at position " << e.Position()
  *               << ": " << e.what() << "\n";
  * }
  * @endcode
@@ -48,7 +48,7 @@ public:
      * @brief Get the position in the input string where parsing failed.
      * @return Zero-based character offset, or 0 if not applicable.
      */
-    [[nodiscard]] size_t position() const { return position_; }
+    [[nodiscard]] size_t Position() const { return position_; }
 
 private:
     size_t position_ = 0;  ///< Character offset of error in input

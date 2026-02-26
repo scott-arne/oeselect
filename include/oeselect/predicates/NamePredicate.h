@@ -39,7 +39,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Name; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::NAME; }
 
 private:
     std::string pattern_;    ///< Name pattern (may contain wildcards)

@@ -394,43 +394,43 @@ _oeselect.StringSet_swigregister(StringSet)
 OESELECT_VERSION_MAJOR = _oeselect.OESELECT_VERSION_MAJOR
 OESELECT_VERSION_MINOR = _oeselect.OESELECT_VERSION_MINOR
 OESELECT_VERSION_PATCH = _oeselect.OESELECT_VERSION_PATCH
-PredicateType_And = _oeselect.PredicateType_And
-PredicateType_Or = _oeselect.PredicateType_Or
-PredicateType_Not = _oeselect.PredicateType_Not
-PredicateType_XOr = _oeselect.PredicateType_XOr
-PredicateType_Name = _oeselect.PredicateType_Name
-PredicateType_Resn = _oeselect.PredicateType_Resn
-PredicateType_Resi = _oeselect.PredicateType_Resi
-PredicateType_Chain = _oeselect.PredicateType_Chain
-PredicateType_Elem = _oeselect.PredicateType_Elem
-PredicateType_Index = _oeselect.PredicateType_Index
-PredicateType_Id = _oeselect.PredicateType_Id
-PredicateType_Alt = _oeselect.PredicateType_Alt
-PredicateType_BFactor = _oeselect.PredicateType_BFactor
-PredicateType_Fragment = _oeselect.PredicateType_Fragment
-PredicateType_SecondaryStructure = _oeselect.PredicateType_SecondaryStructure
-PredicateType_Protein = _oeselect.PredicateType_Protein
-PredicateType_Ligand = _oeselect.PredicateType_Ligand
-PredicateType_Water = _oeselect.PredicateType_Water
-PredicateType_Solvent = _oeselect.PredicateType_Solvent
-PredicateType_Organic = _oeselect.PredicateType_Organic
-PredicateType_Backbone = _oeselect.PredicateType_Backbone
-PredicateType_Metal = _oeselect.PredicateType_Metal
-PredicateType_Heavy = _oeselect.PredicateType_Heavy
-PredicateType_Hydrogen = _oeselect.PredicateType_Hydrogen
-PredicateType_PolarHydrogen = _oeselect.PredicateType_PolarHydrogen
-PredicateType_NonpolarHydrogen = _oeselect.PredicateType_NonpolarHydrogen
-PredicateType_ByRes = _oeselect.PredicateType_ByRes
-PredicateType_ByChain = _oeselect.PredicateType_ByChain
-PredicateType_Around = _oeselect.PredicateType_Around
-PredicateType_Expand = _oeselect.PredicateType_Expand
-PredicateType_Beyond = _oeselect.PredicateType_Beyond
-PredicateType_Helix = _oeselect.PredicateType_Helix
-PredicateType_Sheet = _oeselect.PredicateType_Sheet
-PredicateType_Turn = _oeselect.PredicateType_Turn
-PredicateType_Loop = _oeselect.PredicateType_Loop
-PredicateType_True = _oeselect.PredicateType_True
-PredicateType_False = _oeselect.PredicateType_False
+PredicateType_AND = _oeselect.PredicateType_AND
+PredicateType_OR = _oeselect.PredicateType_OR
+PredicateType_NOT = _oeselect.PredicateType_NOT
+PredicateType_XOR = _oeselect.PredicateType_XOR
+PredicateType_NAME = _oeselect.PredicateType_NAME
+PredicateType_RESN = _oeselect.PredicateType_RESN
+PredicateType_RESI = _oeselect.PredicateType_RESI
+PredicateType_CHAIN = _oeselect.PredicateType_CHAIN
+PredicateType_ELEM = _oeselect.PredicateType_ELEM
+PredicateType_INDEX = _oeselect.PredicateType_INDEX
+PredicateType_ID = _oeselect.PredicateType_ID
+PredicateType_ALT = _oeselect.PredicateType_ALT
+PredicateType_B_FACTOR = _oeselect.PredicateType_B_FACTOR
+PredicateType_FRAGMENT = _oeselect.PredicateType_FRAGMENT
+PredicateType_SECONDARY_STRUCTURE = _oeselect.PredicateType_SECONDARY_STRUCTURE
+PredicateType_PROTEIN = _oeselect.PredicateType_PROTEIN
+PredicateType_LIGAND = _oeselect.PredicateType_LIGAND
+PredicateType_WATER = _oeselect.PredicateType_WATER
+PredicateType_SOLVENT = _oeselect.PredicateType_SOLVENT
+PredicateType_ORGANIC = _oeselect.PredicateType_ORGANIC
+PredicateType_BACKBONE = _oeselect.PredicateType_BACKBONE
+PredicateType_METAL = _oeselect.PredicateType_METAL
+PredicateType_HEAVY = _oeselect.PredicateType_HEAVY
+PredicateType_HYDROGEN = _oeselect.PredicateType_HYDROGEN
+PredicateType_POLAR_HYDROGEN = _oeselect.PredicateType_POLAR_HYDROGEN
+PredicateType_NONPOLAR_HYDROGEN = _oeselect.PredicateType_NONPOLAR_HYDROGEN
+PredicateType_BY_RES = _oeselect.PredicateType_BY_RES
+PredicateType_BY_CHAIN = _oeselect.PredicateType_BY_CHAIN
+PredicateType_AROUND = _oeselect.PredicateType_AROUND
+PredicateType_EXPAND = _oeselect.PredicateType_EXPAND
+PredicateType_BEYOND = _oeselect.PredicateType_BEYOND
+PredicateType_HELIX = _oeselect.PredicateType_HELIX
+PredicateType_SHEET = _oeselect.PredicateType_SHEET
+PredicateType_TURN = _oeselect.PredicateType_TURN
+PredicateType_LOOP = _oeselect.PredicateType_LOOP
+PredicateType_TRUE = _oeselect.PredicateType_TRUE
+PredicateType_FALSE = _oeselect.PredicateType_FALSE
 class SelectionError(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
@@ -438,8 +438,8 @@ class SelectionError(object):
     def __init__(self, *args):
         _oeselect.SelectionError_swiginit(self, _oeselect.new_SelectionError(*args))
 
-    def position(self):
-        return _oeselect.SelectionError_position(self)
+    def Position(self):
+        return _oeselect.SelectionError_Position(self)
     __swig_destroy__ = _oeselect.delete_SelectionError
 
 # Register SelectionError in _oeselect:
@@ -587,17 +587,17 @@ class OEHasAtomNameAdvanced(object):
 # Register OEHasAtomNameAdvanced in _oeselect:
 _oeselect.OEHasAtomNameAdvanced_swigregister(OEHasAtomNameAdvanced)
 
-def ParseSelectorSet(selector_str):
-    return _oeselect.ParseSelectorSet(selector_str)
+def parse_selector_set(selector_str):
+    return _oeselect.parse_selector_set(selector_str)
 
-def MolToSelectorSet(mol):
-    return _oeselect.MolToSelectorSet(mol)
+def mol_to_selector_set(mol):
+    return _oeselect.mol_to_selector_set(mol)
 
-def StrSelectorSet(mol, selection_str):
-    return _oeselect.StrSelectorSet(mol, selection_str)
+def str_selector_set(mol, selection_str):
+    return _oeselect.str_selector_set(mol, selection_str)
 
-def GetSelectorString(atom):
-    return _oeselect.GetSelectorString(atom)
+def get_selector_string(atom):
+    return _oeselect.get_selector_string(atom)
 
 def EvaluateSelection(mol, selection_str):
     return _oeselect.EvaluateSelection(mol, selection_str)
@@ -666,7 +666,7 @@ def str_selector_set(mol, selection_str):
 
         selectors = str_selector_set(mol, "protein")
     """
-    return StrSelectorSet(mol, selection_str)
+    return str_selector_set(mol, selection_str)
 
 def selector_set(selector_str):
     """Parse a selector string into a set of Selector objects.
@@ -678,7 +678,7 @@ def selector_set(selector_str):
 
         sels = selector_set("ALA:123: :A,GLY:124: :A")
     """
-    return ParseSelectorSet(selector_str)
+    return parse_selector_set(selector_str)
 
 def mol_to_selector_set(mol):
     """Extract unique Selector objects from all atoms in a molecule.
@@ -690,7 +690,7 @@ def mol_to_selector_set(mol):
 
         selectors = mol_to_selector_set(mol)
     """
-    return MolToSelectorSet(mol)
+    return mol_to_selector_set(mol)
 
 def get_selector_string(atom):
     """Get the selector string for an atom.
@@ -703,7 +703,7 @@ def get_selector_string(atom):
         for atom in mol.GetAtoms():
             print(get_selector_string(atom))
     """
-    return GetSelectorString(atom)
+    return get_selector_string(atom)
 
 __version__ = "1.0.0"
 

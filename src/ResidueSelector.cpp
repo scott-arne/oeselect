@@ -106,7 +106,7 @@ bool Selector::operator!=(const Selector& other) const {
 // ============================================================================
 
 OEResidueSelector::OEResidueSelector(const std::string& selector_str)
-    : selectors_(ParseSelectorSet(selector_str)) {}
+    : selectors_(parse_selector_set(selector_str)) {}
 
 OEResidueSelector::OEResidueSelector(const std::set<Selector>& selectors)
     : selectors_(selectors) {}
@@ -130,7 +130,7 @@ OEResidueSelector::CreateCopy() const {
 // Utility functions
 // ============================================================================
 
-std::set<Selector> ParseSelectorSet(const std::string& selector_str) {
+std::set<Selector> parse_selector_set(const std::string& selector_str) {
     std::set<Selector> result;
     // Split on comma, semicolon, ampersand, tab, and newline
     static const std::regex delimiter(R"([,;&\t\n]+)");
@@ -152,7 +152,7 @@ std::set<Selector> ParseSelectorSet(const std::string& selector_str) {
     return result;
 }
 
-std::set<Selector> MolToSelectorSet(const OEChem::OEMolBase& mol) {
+std::set<Selector> mol_to_selector_set(const OEChem::OEMolBase& mol) {
     std::set<Selector> result;
     for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         result.insert(Selector::FromAtom(*atom));
@@ -160,7 +160,7 @@ std::set<Selector> MolToSelectorSet(const OEChem::OEMolBase& mol) {
     return result;
 }
 
-std::set<std::string> StrSelectorSet(
+std::set<std::string> str_selector_set(
         OEChem::OEMolBase& mol, const std::string& selection_str) {
     const OESelection sele = OESelection::Parse(selection_str);
     const OESelect selector(mol, sele);
@@ -168,13 +168,13 @@ std::set<std::string> StrSelectorSet(
     std::set<std::string> result;
     for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         if (selector(*atom)) {
-            result.insert(GetSelectorString(*atom));
+            result.insert(get_selector_string(*atom));
         }
     }
     return result;
 }
 
-std::string GetSelectorString(const OEChem::OEAtomBase& atom) {
+std::string get_selector_string(const OEChem::OEAtomBase& atom) {
     return Selector::FromAtom(atom).ToString();
 }
 

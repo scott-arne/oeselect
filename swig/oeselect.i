@@ -238,15 +238,15 @@ unsigned int CountSelection(
 namespace OESel {
 
 enum class PredicateType {
-    And, Or, Not, XOr,
-    Name, Resn, Resi, Chain, Elem, Index, Id, Alt, BFactor, Fragment,
-    SecondaryStructure,
-    Protein, Ligand, Water, Solvent, Organic, Backbone, Metal,
-    Heavy, Hydrogen, PolarHydrogen, NonpolarHydrogen,
-    ByRes, ByChain,
-    Around, Expand, Beyond,
-    Helix, Sheet, Turn, Loop,
-    True, False
+    AND, OR, NOT, XOR,
+    NAME, RESN, RESI, CHAIN, ELEM, INDEX, ID, ALT, B_FACTOR, FRAGMENT,
+    SECONDARY_STRUCTURE,
+    PROTEIN, LIGAND, WATER, SOLVENT, ORGANIC, BACKBONE, METAL,
+    HEAVY, HYDROGEN, POLAR_HYDROGEN, NONPOLAR_HYDROGEN,
+    BY_RES, BY_CHAIN,
+    AROUND, EXPAND, BEYOND,
+    HELIX, SHEET, TURN, LOOP,
+    TRUE, FALSE
 };
 
 // ============================================================================
@@ -256,7 +256,7 @@ class SelectionError : public std::runtime_error {
 public:
     explicit SelectionError(const std::string& message);
     SelectionError(const std::string& message, size_t position);
-    size_t position() const;
+    size_t Position() const;
 };
 
 // ============================================================================
@@ -355,10 +355,10 @@ public:
 // ============================================================================
 // Utility functions
 // ============================================================================
-std::set<Selector> ParseSelectorSet(const std::string& selector_str);
-std::set<Selector> MolToSelectorSet(const OEChem::OEMolBase& mol);
-std::set<std::string> StrSelectorSet(OEChem::OEMolBase& mol, const std::string& selection_str);
-std::string GetSelectorString(const OEChem::OEAtomBase& atom);
+std::set<Selector> parse_selector_set(const std::string& selector_str);
+std::set<Selector> mol_to_selector_set(const OEChem::OEMolBase& mol);
+std::set<std::string> str_selector_set(OEChem::OEMolBase& mol, const std::string& selection_str);
+std::string get_selector_string(const OEChem::OEAtomBase& atom);
 
 } // namespace OESel
 
@@ -479,7 +479,7 @@ def str_selector_set(mol, selection_str):
 
         selectors = str_selector_set(mol, "protein")
     """
-    return StrSelectorSet(mol, selection_str)
+    return str_selector_set(mol, selection_str)
 
 def selector_set(selector_str):
     """Parse a selector string into a set of Selector objects.
@@ -491,7 +491,7 @@ def selector_set(selector_str):
 
         sels = selector_set("ALA:123: :A,GLY:124: :A")
     """
-    return ParseSelectorSet(selector_str)
+    return parse_selector_set(selector_str)
 
 def mol_to_selector_set(mol):
     """Extract unique Selector objects from all atoms in a molecule.
@@ -503,7 +503,7 @@ def mol_to_selector_set(mol):
 
         selectors = mol_to_selector_set(mol)
     """
-    return MolToSelectorSet(mol)
+    return mol_to_selector_set(mol)
 
 def get_selector_string(atom):
     """Get the selector string for an atom.
@@ -516,7 +516,7 @@ def get_selector_string(atom):
         for atom in mol.GetAtoms():
             print(get_selector_string(atom))
     """
-    return GetSelectorString(atom)
+    return get_selector_string(atom)
 
 __version__ = "1.0.0"
 %}

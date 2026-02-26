@@ -36,7 +36,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Around; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::AROUND; }
     [[nodiscard]] std::vector<Ptr> Children() const override { return {reference_}; }
 
 private:
@@ -70,7 +70,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Expand; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::EXPAND; }
     [[nodiscard]] std::vector<Ptr> Children() const override { return {reference_}; }
 
 private:
@@ -104,7 +104,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Beyond; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::BEYOND; }
     [[nodiscard]] std::vector<Ptr> Children() const override { return {reference_}; }
 
 private:

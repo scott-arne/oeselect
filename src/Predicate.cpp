@@ -190,31 +190,31 @@ ResiPredicate::ResiPredicate(const int value, const Op op)
     : value_(value), end_value_(0), op_(op) {}
 
 ResiPredicate::ResiPredicate(const int start, const int end)
-    : value_(start), end_value_(end), op_(Op::Range) {}
+    : value_(start), end_value_(end), op_(Op::RANGE) {}
 
 bool ResiPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
 
     const int resi = res.GetResidueNumber();
     switch (op_) {
-        case Op::Eq:    return resi == value_;
-        case Op::Lt:    return resi < value_;
-        case Op::Le:    return resi <= value_;
-        case Op::Gt:    return resi > value_;
-        case Op::Ge:    return resi >= value_;
-        case Op::Range: return resi >= value_ && resi <= end_value_;
+        case Op::EQ:    return resi == value_;
+        case Op::LT:    return resi < value_;
+        case Op::LE:    return resi <= value_;
+        case Op::GT:    return resi > value_;
+        case Op::GE:    return resi >= value_;
+        case Op::RANGE: return resi >= value_ && resi <= end_value_;
     }
     return false;  // Should never reach here
 }
 
 std::string ResiPredicate::ToCanonical() const {
     switch (op_) {
-        case Op::Eq:    return "resi " + std::to_string(value_);
-        case Op::Lt:    return "resi < " + std::to_string(value_);
-        case Op::Le:    return "resi <= " + std::to_string(value_);
-        case Op::Gt:    return "resi > " + std::to_string(value_);
-        case Op::Ge:    return "resi >= " + std::to_string(value_);
-        case Op::Range: return "resi " + std::to_string(value_) + "-" + std::to_string(end_value_);
+        case Op::EQ:    return "resi " + std::to_string(value_);
+        case Op::LT:    return "resi < " + std::to_string(value_);
+        case Op::LE:    return "resi <= " + std::to_string(value_);
+        case Op::GT:    return "resi > " + std::to_string(value_);
+        case Op::GE:    return "resi >= " + std::to_string(value_);
+        case Op::RANGE: return "resi " + std::to_string(value_) + "-" + std::to_string(end_value_);
     }
     return "resi " + std::to_string(value_);  // Default fallback
 }
@@ -239,7 +239,7 @@ std::string ChainPredicate::ToCanonical() const {
 
 namespace {
 // Helper to convert element symbol to uppercase for canonical form
-std::string NormalizeElement(const std::string& elem) {
+std::string normalize_element(const std::string& elem) {
     if (elem.empty()) return elem;
     std::string result;
     result += static_cast<char>(std::toupper(static_cast<unsigned char>(elem[0])));
@@ -252,7 +252,7 @@ std::string NormalizeElement(const std::string& elem) {
 
 ElemPredicate::ElemPredicate(const std::string& element)
     : atomic_num_(OEChem::OEGetAtomicNum(element.c_str()))
-    , element_(NormalizeElement(element)) {}
+    , element_(normalize_element(element)) {}
 
 bool ElemPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     return atom.GetAtomicNum() == static_cast<int>(atomic_num_);
@@ -268,29 +268,29 @@ IndexPredicate::IndexPredicate(const unsigned int value, const Op op)
     : value_(value), end_value_(0), op_(op) {}
 
 IndexPredicate::IndexPredicate(const unsigned int start, const unsigned int end)
-    : value_(start), end_value_(end), op_(Op::Range) {}
+    : value_(start), end_value_(end), op_(Op::RANGE) {}
 
 bool IndexPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const unsigned int idx = atom.GetIdx();
     switch (op_) {
-        case Op::Eq:    return idx == value_;
-        case Op::Lt:    return idx < value_;
-        case Op::Le:    return idx <= value_;
-        case Op::Gt:    return idx > value_;
-        case Op::Ge:    return idx >= value_;
-        case Op::Range: return idx >= value_ && idx <= end_value_;
+        case Op::EQ:    return idx == value_;
+        case Op::LT:    return idx < value_;
+        case Op::LE:    return idx <= value_;
+        case Op::GT:    return idx > value_;
+        case Op::GE:    return idx >= value_;
+        case Op::RANGE: return idx >= value_ && idx <= end_value_;
     }
     return false;
 }
 
 std::string IndexPredicate::ToCanonical() const {
     switch (op_) {
-        case Op::Eq:    return "index " + std::to_string(value_);
-        case Op::Lt:    return "index < " + std::to_string(value_);
-        case Op::Le:    return "index <= " + std::to_string(value_);
-        case Op::Gt:    return "index > " + std::to_string(value_);
-        case Op::Ge:    return "index >= " + std::to_string(value_);
-        case Op::Range: return "index " + std::to_string(value_) + "-" + std::to_string(end_value_);
+        case Op::EQ:    return "index " + std::to_string(value_);
+        case Op::LT:    return "index < " + std::to_string(value_);
+        case Op::LE:    return "index <= " + std::to_string(value_);
+        case Op::GT:    return "index > " + std::to_string(value_);
+        case Op::GE:    return "index >= " + std::to_string(value_);
+        case Op::RANGE: return "index " + std::to_string(value_) + "-" + std::to_string(end_value_);
     }
     return "index " + std::to_string(value_);
 }
@@ -301,30 +301,30 @@ IdPredicate::IdPredicate(const int value, const Op op)
     : value_(value), end_value_(0), op_(op) {}
 
 IdPredicate::IdPredicate(const int start, const int end)
-    : value_(start), end_value_(end), op_(Op::Range) {}
+    : value_(start), end_value_(end), op_(Op::RANGE) {}
 
 bool IdPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
     const int serial = res.GetSerialNumber();
     switch (op_) {
-        case Op::Eq:    return serial == value_;
-        case Op::Lt:    return serial < value_;
-        case Op::Le:    return serial <= value_;
-        case Op::Gt:    return serial > value_;
-        case Op::Ge:    return serial >= value_;
-        case Op::Range: return serial >= value_ && serial <= end_value_;
+        case Op::EQ:    return serial == value_;
+        case Op::LT:    return serial < value_;
+        case Op::LE:    return serial <= value_;
+        case Op::GT:    return serial > value_;
+        case Op::GE:    return serial >= value_;
+        case Op::RANGE: return serial >= value_ && serial <= end_value_;
     }
     return false;
 }
 
 std::string IdPredicate::ToCanonical() const {
     switch (op_) {
-        case Op::Eq:    return "id " + std::to_string(value_);
-        case Op::Lt:    return "id < " + std::to_string(value_);
-        case Op::Le:    return "id <= " + std::to_string(value_);
-        case Op::Gt:    return "id > " + std::to_string(value_);
-        case Op::Ge:    return "id >= " + std::to_string(value_);
-        case Op::Range: return "id " + std::to_string(value_) + "-" + std::to_string(end_value_);
+        case Op::EQ:    return "id " + std::to_string(value_);
+        case Op::LT:    return "id < " + std::to_string(value_);
+        case Op::LE:    return "id <= " + std::to_string(value_);
+        case Op::GT:    return "id > " + std::to_string(value_);
+        case Op::GE:    return "id >= " + std::to_string(value_);
+        case Op::RANGE: return "id " + std::to_string(value_) + "-" + std::to_string(end_value_);
     }
     return "id " + std::to_string(value_);
 }
@@ -347,7 +347,7 @@ std::string AltPredicate::ToCanonical() const {
 // BFactorPredicate implementation
 
 namespace {
-std::string FormatFloat(const float value) {
+std::string format_float(const float value) {
     std::ostringstream oss;
     oss << std::setprecision(6) << std::noshowpoint << value;
     std::string result = oss.str();
@@ -367,32 +367,32 @@ BFactorPredicate::BFactorPredicate(const float value, const Op op)
     : value_(value), end_value_(0.0f), op_(op) {}
 
 BFactorPredicate::BFactorPredicate(const float start, const float end)
-    : value_(start), end_value_(end), op_(Op::Range) {}
+    : value_(start), end_value_(end), op_(Op::RANGE) {}
 
 bool BFactorPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
     const float bfactor = static_cast<float>(res.GetBFactor());
     switch (op_) {
-        case Op::Eq:    return bfactor == value_;
-        case Op::Lt:    return bfactor < value_;
-        case Op::Le:    return bfactor <= value_;
-        case Op::Gt:    return bfactor > value_;
-        case Op::Ge:    return bfactor >= value_;
-        case Op::Range: return bfactor >= value_ && bfactor <= end_value_;
+        case Op::EQ:    return bfactor == value_;
+        case Op::LT:    return bfactor < value_;
+        case Op::LE:    return bfactor <= value_;
+        case Op::GT:    return bfactor > value_;
+        case Op::GE:    return bfactor >= value_;
+        case Op::RANGE: return bfactor >= value_ && bfactor <= end_value_;
     }
     return false;
 }
 
 std::string BFactorPredicate::ToCanonical() const {
     switch (op_) {
-        case Op::Eq:    return "b " + FormatFloat(value_);
-        case Op::Lt:    return "b < " + FormatFloat(value_);
-        case Op::Le:    return "b <= " + FormatFloat(value_);
-        case Op::Gt:    return "b > " + FormatFloat(value_);
-        case Op::Ge:    return "b >= " + FormatFloat(value_);
-        case Op::Range: return "b " + FormatFloat(value_) + "-" + FormatFloat(end_value_);
+        case Op::EQ:    return "b " + format_float(value_);
+        case Op::LT:    return "b < " + format_float(value_);
+        case Op::LE:    return "b <= " + format_float(value_);
+        case Op::GT:    return "b > " + format_float(value_);
+        case Op::GE:    return "b >= " + format_float(value_);
+        case Op::RANGE: return "b " + format_float(value_) + "-" + format_float(end_value_);
     }
-    return "b " + FormatFloat(value_);
+    return "b " + format_float(value_);
 }
 
 // FragmentPredicate implementation
@@ -401,30 +401,30 @@ FragmentPredicate::FragmentPredicate(const unsigned int value, const Op op)
     : value_(value), end_value_(0), op_(op) {}
 
 FragmentPredicate::FragmentPredicate(const unsigned int start, const unsigned int end)
-    : value_(start), end_value_(end), op_(Op::Range) {}
+    : value_(start), end_value_(end), op_(Op::RANGE) {}
 
 bool FragmentPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
     const unsigned int frag = res.GetFragmentNumber();
     switch (op_) {
-        case Op::Eq:    return frag == value_;
-        case Op::Lt:    return frag < value_;
-        case Op::Le:    return frag <= value_;
-        case Op::Gt:    return frag > value_;
-        case Op::Ge:    return frag >= value_;
-        case Op::Range: return frag >= value_ && frag <= end_value_;
+        case Op::EQ:    return frag == value_;
+        case Op::LT:    return frag < value_;
+        case Op::LE:    return frag <= value_;
+        case Op::GT:    return frag > value_;
+        case Op::GE:    return frag >= value_;
+        case Op::RANGE: return frag >= value_ && frag <= end_value_;
     }
     return false;
 }
 
 std::string FragmentPredicate::ToCanonical() const {
     switch (op_) {
-        case Op::Eq:    return "frag " + std::to_string(value_);
-        case Op::Lt:    return "frag < " + std::to_string(value_);
-        case Op::Le:    return "frag <= " + std::to_string(value_);
-        case Op::Gt:    return "frag > " + std::to_string(value_);
-        case Op::Ge:    return "frag >= " + std::to_string(value_);
-        case Op::Range: return "frag " + std::to_string(value_) + "-" + std::to_string(end_value_);
+        case Op::EQ:    return "frag " + std::to_string(value_);
+        case Op::LT:    return "frag < " + std::to_string(value_);
+        case Op::LE:    return "frag <= " + std::to_string(value_);
+        case Op::GT:    return "frag > " + std::to_string(value_);
+        case Op::GE:    return "frag >= " + std::to_string(value_);
+        case Op::RANGE: return "frag " + std::to_string(value_) + "-" + std::to_string(end_value_);
     }
     return "frag " + std::to_string(value_);
 }
@@ -433,29 +433,29 @@ std::string FragmentPredicate::ToCanonical() const {
 
 bool ProteinPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     Tagger::TagMolecule(ctx.Mol());
-    return Tagger::HasComponent(atom, ComponentFlag::Protein);
+    return Tagger::HasComponent(atom, ComponentFlag::PROTEIN);
 }
 
 // LigandPredicate implementation
 
 bool LigandPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     Tagger::TagMolecule(ctx.Mol());
-    return Tagger::HasComponent(atom, ComponentFlag::Ligand);
+    return Tagger::HasComponent(atom, ComponentFlag::LIGAND);
 }
 
 // WaterPredicate implementation
 
 bool WaterPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     Tagger::TagMolecule(ctx.Mol());
-    return Tagger::HasComponent(atom, ComponentFlag::Water);
+    return Tagger::HasComponent(atom, ComponentFlag::WATER);
 }
 
 // SolventPredicate implementation - matches Water OR Solvent
 
 bool SolventPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     Tagger::TagMolecule(ctx.Mol());
-    return Tagger::HasComponent(atom, ComponentFlag::Water) ||
-           Tagger::HasComponent(atom, ComponentFlag::Solvent);
+    return Tagger::HasComponent(atom, ComponentFlag::WATER) ||
+           Tagger::HasComponent(atom, ComponentFlag::SOLVENT);
 }
 
 // OrganicPredicate implementation - C-containing, not protein/nucleic
@@ -476,8 +476,8 @@ bool OrganicPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) co
 
     Tagger::TagMolecule(ctx.Mol());
     // Exclude protein and nucleic
-    if (Tagger::HasComponent(atom, ComponentFlag::Protein)) return false;
-    if (Tagger::HasComponent(atom, ComponentFlag::Nucleic)) return false;
+    if (Tagger::HasComponent(atom, ComponentFlag::PROTEIN)) return false;
+    if (Tagger::HasComponent(atom, ComponentFlag::NUCLEIC)) return false;
     return true;
 }
 
@@ -485,7 +485,7 @@ bool OrganicPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) co
 
 bool BackbonePredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     Tagger::TagMolecule(ctx.Mol());
-    if (!Tagger::HasComponent(atom, ComponentFlag::Protein)) return false;
+    if (!Tagger::HasComponent(atom, ComponentFlag::PROTEIN)) return false;
 
     const std::string name = atom.GetName();
     return name == "N" || name == "CA" || name == "C" || name == "O";
@@ -495,7 +495,7 @@ bool BackbonePredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) c
 
 bool SidechainPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
     Tagger::TagMolecule(ctx.Mol());
-    if (!Tagger::HasComponent(atom, ComponentFlag::Protein)) return false;
+    if (!Tagger::HasComponent(atom, ComponentFlag::PROTEIN)) return false;
 
     const std::string name = atom.GetName();
     // Exclude backbone atoms
@@ -508,15 +508,15 @@ bool SidechainPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) 
 // MetalPredicate implementation - metal elements
 
 bool MetalPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
-    const auto atomicNum = static_cast<int>(atom.GetAtomicNum());
+    const auto atomic_num = static_cast<int>(atom.GetAtomicNum());
     // Common metals in biomolecular structures
     // Li(3), Na(11), Mg(12), Al(13), K(19), Ca(20), Sc(21)...Zn(30),
     // Rb(37)...Cd(48), Cs(55)...Hg(80)
-    return atomicNum == 3 ||   // Li
-           (atomicNum >= 11 && atomicNum <= 13) ||  // Na, Mg, Al
-           (atomicNum >= 19 && atomicNum <= 30) ||  // K through Zn
-           (atomicNum >= 37 && atomicNum <= 48) ||  // Rb through Cd
-           (atomicNum >= 55 && atomicNum <= 80);    // Cs through Hg
+    return atomic_num == 3 ||   // Li
+           (atomic_num >= 11 && atomic_num <= 13) ||  // Na, Mg, Al
+           (atomic_num >= 19 && atomic_num <= 30) ||  // K through Zn
+           (atomic_num >= 37 && atomic_num <= 48) ||  // Rb through Cd
+           (atomic_num >= 55 && atomic_num <= 80);    // Cs through Hg
 }
 
 // HeavyPredicate implementation - non-hydrogen atoms
@@ -539,8 +539,8 @@ bool PolarHydrogenPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) 
     // Check what this hydrogen is bonded to
     for (OESystem::OEIter bond = atom.GetBonds(); bond; ++bond) {
         const OEChem::OEAtomBase* nbr = bond->GetNbr(&atom);
-        if (const auto nbrAtomicNum = static_cast<int>(nbr->GetAtomicNum());
-            nbrAtomicNum == 7 || nbrAtomicNum == 8 || nbrAtomicNum == 16) {
+        if (const auto nbr_atomic_num = static_cast<int>(nbr->GetAtomicNum());
+            nbr_atomic_num == 7 || nbr_atomic_num == 8 || nbr_atomic_num == 16) {
             return true;  // Bonded to N, O, or S
         }
     }
@@ -556,8 +556,8 @@ bool NonpolarHydrogenPredicate::Evaluate(Context&, const OEChem::OEAtomBase& ato
     for (OESystem::OEIter bond = atom.GetBonds(); bond; ++bond) {
         const OEChem::OEAtomBase* nbr = bond->GetNbr(&atom);
         // If bonded to N, O, or S, it's polar
-        if (const auto nbrAtomicNum = static_cast<int>(nbr->GetAtomicNum());
-            nbrAtomicNum == 7 || nbrAtomicNum == 8 || nbrAtomicNum == 16) {
+        if (const auto nbr_atomic_num = static_cast<int>(nbr->GetAtomicNum());
+            nbr_atomic_num == 7 || nbr_atomic_num == 8 || nbr_atomic_num == 16) {
             return false;
         }
     }
@@ -570,7 +570,7 @@ bool NonpolarHydrogenPredicate::Evaluate(Context&, const OEChem::OEAtomBase& ato
 
 namespace {
 // Helper to format radius for canonical output
-std::string FormatRadius(const float radius) {
+std::string format_radius(const float radius) {
     std::ostringstream oss;
     oss << std::setprecision(6) << std::noshowpoint << radius;
     std::string result = oss.str();
@@ -593,7 +593,7 @@ AroundPredicate::AroundPredicate(const float radius, Ptr reference)
     : radius_(radius), reference_(std::move(reference)) {}
 
 const std::vector<bool>& AroundPredicate::GetAroundMask(Context& ctx) const {
-    const std::string cache_key = "around_" + FormatRadius(radius_) + "_" + reference_->ToCanonical();
+    const std::string cache_key = "around_" + format_radius(radius_) + "_" + reference_->ToCanonical();
 
     if (ctx.HasAroundCache(cache_key)) {
         return ctx.GetAroundCache(cache_key);
@@ -635,7 +635,7 @@ bool AroundPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) con
 }
 
 std::string AroundPredicate::ToCanonical() const {
-    return reference_->ToCanonical() + " around " + FormatRadius(radius_);
+    return reference_->ToCanonical() + " around " + format_radius(radius_);
 }
 
 // ExpandPredicate implementation (includes reference atoms)
@@ -645,7 +645,7 @@ ExpandPredicate::ExpandPredicate(const float radius, Ptr reference)
 
 const std::vector<bool>& ExpandPredicate::GetAroundMask(Context& ctx) const {
     // Use same cache key format as AroundPredicate since it's the same computation
-    const std::string cache_key = "around_" + FormatRadius(radius_) + "_" + reference_->ToCanonical();
+    const std::string cache_key = "around_" + format_radius(radius_) + "_" + reference_->ToCanonical();
 
     if (ctx.HasAroundCache(cache_key)) {
         return ctx.GetAroundCache(cache_key);
@@ -682,7 +682,7 @@ bool ExpandPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) con
 }
 
 std::string ExpandPredicate::ToCanonical() const {
-    return reference_->ToCanonical() + " expand " + FormatRadius(radius_);
+    return reference_->ToCanonical() + " expand " + format_radius(radius_);
 }
 
 // BeyondPredicate implementation
@@ -692,7 +692,7 @@ BeyondPredicate::BeyondPredicate(const float radius, Ptr reference)
 
 const std::vector<bool>& BeyondPredicate::GetAroundMask(Context& ctx) const {
     // Use the same cache as around - we just interpret it differently
-    const std::string cache_key = "around_" + FormatRadius(radius_) + "_" + reference_->ToCanonical();
+    const std::string cache_key = "around_" + format_radius(radius_) + "_" + reference_->ToCanonical();
 
     if (ctx.HasAroundCache(cache_key)) {
         return ctx.GetAroundCache(cache_key);
@@ -734,7 +734,7 @@ bool BeyondPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) con
 }
 
 std::string BeyondPredicate::ToCanonical() const {
-    return reference_->ToCanonical() + " beyond " + FormatRadius(radius_);
+    return reference_->ToCanonical() + " beyond " + format_radius(radius_);
 }
 
 // ============================================================================
@@ -768,7 +768,7 @@ struct ResidueKeyHash {
     }
 };
 
-ResidueKey GetResidueKey(const OEChem::OEAtomBase& atom) {
+ResidueKey get_residue_key(const OEChem::OEAtomBase& atom) {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
     return {res.GetChainID(), res.GetResidueNumber(), res.GetInsertCode()};
 }
@@ -792,7 +792,7 @@ const std::unordered_set<unsigned int>& ByResPredicate::GetMatchingResidues(Cont
     for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
         if (child_->Evaluate(ctx, *atom)) {
             // This atom matches - get its residue key
-            ResidueKey key = GetResidueKey(*atom);
+            ResidueKey key = get_residue_key(*atom);
             matching_residue_keys.insert(key);
         }
     }
@@ -800,7 +800,7 @@ const std::unordered_set<unsigned int>& ByResPredicate::GetMatchingResidues(Cont
     // Second pass: collect all atom indices that belong to matching residues
     std::unordered_set<unsigned int> matching_atom_indices;
     for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
-        if (const auto key = GetResidueKey(*atom); matching_residue_keys.count(key) > 0) {
+        if (const auto key = get_residue_key(*atom); matching_residue_keys.count(key) > 0) {
             matching_atom_indices.insert(atom->GetIdx());
         }
     }

@@ -29,7 +29,7 @@ namespace OESel {
  * auto sele = OESelection::Parse("protein and chain A");
  *
  * // Check what predicates are used
- * if (sele.ContainsPredicate(PredicateType::Around)) {
+ * if (sele.ContainsPredicate(PredicateType::AROUND)) {
  *     // Spatial index will be needed
  * }
  *

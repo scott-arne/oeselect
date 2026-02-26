@@ -22,7 +22,7 @@ class HeavyPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override { return "heavy"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Heavy; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::HEAVY; }
 };
 
 /**
@@ -34,7 +34,7 @@ class HydrogenPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override { return "hydrogen"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Hydrogen; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::HYDROGEN; }
 };
 
 /**
@@ -48,7 +48,7 @@ class PolarHydrogenPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override { return "polar_hydrogen"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::PolarHydrogen; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::POLAR_HYDROGEN; }
 };
 
 /**
@@ -61,7 +61,7 @@ class NonpolarHydrogenPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override { return "nonpolar_hydrogen"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::NonpolarHydrogen; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::NONPOLAR_HYDROGEN; }
 };
 
 }  // namespace OESel

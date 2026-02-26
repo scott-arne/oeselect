@@ -84,11 +84,11 @@ namespace OESel {
  * @throws SelectionError if the string cannot be parsed.
  *
  * @code
- * auto pred = ParseSelection("protein and chain A");
+ * auto pred = parse_selection("protein and chain A");
  * // pred is now a tree: And(Protein, Chain("A"))
  * @endcode
  */
-Predicate::Ptr ParseSelection(const std::string& sele);
+Predicate::Ptr parse_selection(const std::string& sele);
 
 }  // namespace OESel
 

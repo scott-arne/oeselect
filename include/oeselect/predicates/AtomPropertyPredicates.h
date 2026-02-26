@@ -34,7 +34,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Resn; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::RESN; }
 
 private:
     std::string pattern_;
@@ -55,14 +55,14 @@ private:
 class ResiPredicate : public Predicate {
 public:
     /// Comparison operators for residue number matching
-    enum class Op { Eq, Lt, Le, Gt, Ge, Range };
+    enum class Op { EQ, LT, LE, GT, GE, RANGE };
 
     /**
      * @brief Construct with single value and operator.
      * @param value Residue number to compare against.
      * @param op Comparison operator (default: exact match).
      */
-    explicit ResiPredicate(int value, Op op = Op::Eq);
+    explicit ResiPredicate(int value, Op op = Op::EQ);
 
     /**
      * @brief Construct with range.
@@ -73,7 +73,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Resi; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::RESI; }
 
 private:
     int value_;
@@ -100,7 +100,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Chain; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::CHAIN; }
 
 private:
     std::string chain_id_;
@@ -127,7 +127,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Elem; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::ELEM; }
 
 private:
     unsigned int atomic_num_;  ///< Precomputed atomic number
@@ -149,14 +149,14 @@ private:
 class IndexPredicate : public Predicate {
 public:
     /// Comparison operators for index matching
-    enum class Op { Eq, Lt, Le, Gt, Ge, Range };
+    enum class Op { EQ, LT, LE, GT, GE, RANGE };
 
     /**
      * @brief Construct with single value and operator.
      * @param value Atom index to compare against.
      * @param op Comparison operator (default: exact match).
      */
-    explicit IndexPredicate(unsigned int value, Op op = Op::Eq);
+    explicit IndexPredicate(unsigned int value, Op op = Op::EQ);
 
     /**
      * @brief Construct with range.
@@ -167,7 +167,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Index; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::INDEX; }
 
 private:
     unsigned int value_;
@@ -190,14 +190,14 @@ private:
 class IdPredicate : public Predicate {
 public:
     /// Comparison operators for serial number matching
-    enum class Op { Eq, Lt, Le, Gt, Ge, Range };
+    enum class Op { EQ, LT, LE, GT, GE, RANGE };
 
     /**
      * @brief Construct with single value and operator.
      * @param value Serial number to compare against.
      * @param op Comparison operator (default: exact match).
      */
-    explicit IdPredicate(int value, Op op = Op::Eq);
+    explicit IdPredicate(int value, Op op = Op::EQ);
 
     /**
      * @brief Construct with range.
@@ -208,7 +208,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Id; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::ID; }
 
 private:
     int value_;
@@ -235,7 +235,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Alt; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::ALT; }
 
 private:
     std::string alt_id_;
@@ -257,14 +257,14 @@ private:
 class BFactorPredicate : public Predicate {
 public:
     /// Comparison operators for B-factor matching
-    enum class Op { Eq, Lt, Le, Gt, Ge, Range };
+    enum class Op { EQ, LT, LE, GT, GE, RANGE };
 
     /**
      * @brief Construct with single value and operator.
      * @param value B-factor to compare against.
      * @param op Comparison operator (default: exact match).
      */
-    explicit BFactorPredicate(float value, Op op = Op::Eq);
+    explicit BFactorPredicate(float value, Op op = Op::EQ);
 
     /**
      * @brief Construct with range.
@@ -275,7 +275,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::BFactor; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::B_FACTOR; }
 
 private:
     float value_;
@@ -298,14 +298,14 @@ private:
 class FragmentPredicate : public Predicate {
 public:
     /// Comparison operators for fragment number matching
-    enum class Op { Eq, Lt, Le, Gt, Ge, Range };
+    enum class Op { EQ, LT, LE, GT, GE, RANGE };
 
     /**
      * @brief Construct with single value and operator.
      * @param value Fragment number to compare against.
      * @param op Comparison operator (default: exact match).
      */
-    explicit FragmentPredicate(unsigned int value, Op op = Op::Eq);
+    explicit FragmentPredicate(unsigned int value, Op op = Op::EQ);
 
     /**
      * @brief Construct with range.
@@ -316,7 +316,7 @@ public:
 
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override;
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Fragment; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::FRAGMENT; }
 
 private:
     unsigned int value_;

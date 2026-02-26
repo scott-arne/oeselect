@@ -22,7 +22,7 @@ public:
         return true;
     }
     [[nodiscard]] std::string ToCanonical() const override { return "all"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::True; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::TRUE; }
 };
 
 /// PIMPL implementation holding the root predicate
@@ -37,7 +37,7 @@ OESelection OESelection::Parse(const std::string& sele) {
     if (sele.empty()) {
         return {};  // Empty string = select all
     }
-    const auto root = ParseSelection(sele);
+    const auto root = parse_selection(sele);
     return OESelection(root);
 }
 
@@ -74,18 +74,18 @@ namespace {
  * @param type Target predicate type.
  * @return true if any predicate in the subtree has the target type.
  */
-bool containsPredicateRecursive(const Predicate& pred, const PredicateType type) {
+bool contains_predicate_recursive(const Predicate& pred, const PredicateType type) {
     if (pred.Type() == type) {
         return true;
     }
     const auto& children = pred.Children();
     return std::any_of(children.begin(), children.end(),
-        [type](const auto& child) { return containsPredicateRecursive(*child, type); });
+        [type](const auto& child) { return contains_predicate_recursive(*child, type); });
 }
 }  // namespace
 
 bool OESelection::ContainsPredicate(const PredicateType type) const {
-    return containsPredicateRecursive(*pimpl_->root, type);
+    return contains_predicate_recursive(*pimpl_->root, type);
 }
 
 const Predicate& OESelection::Root() const {
@@ -93,7 +93,7 @@ const Predicate& OESelection::Root() const {
 }
 
 bool OESelection::IsEmpty() const {
-    return pimpl_->root->Type() == PredicateType::True;
+    return pimpl_->root->Type() == PredicateType::TRUE;
 }
 
 }  // namespace OESel

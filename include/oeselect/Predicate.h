@@ -29,57 +29,57 @@ class Context;
  */
 enum class PredicateType {
     // Logical operators
-    And,    ///< Logical AND of child predicates
-    Or,     ///< Logical OR of child predicates
-    Not,    ///< Logical negation of child predicate
-    XOr,    ///< Exclusive OR of child predicates
+    AND,    ///< Logical AND of child predicates
+    OR,     ///< Logical OR of child predicates
+    NOT,    ///< Logical negation of child predicate
+    XOR,    ///< Exclusive OR of child predicates
 
     // Atom property predicates
-    Name,   ///< Atom name matching (supports wildcards)
-    Resn,   ///< Residue name matching
-    Resi,   ///< Residue number (supports ranges/comparisons)
-    Chain,  ///< Chain identifier matching
-    Elem,   ///< Element symbol matching
-    Index,  ///< Atom index (supports ranges/comparisons)
-    Id,     ///< Atom serial number (supports ranges/comparisons)
-    Alt,    ///< Alternate location identifier
-    BFactor,    ///< B-factor / temperature factor (supports float ranges/comparisons)
-    Fragment,   ///< Fragment number (supports ranges/comparisons)
-    SecondaryStructure,  ///< Secondary structure type
+    NAME,   ///< Atom name matching (supports wildcards)
+    RESN,   ///< Residue name matching
+    RESI,   ///< Residue number (supports ranges/comparisons)
+    CHAIN,  ///< Chain identifier matching
+    ELEM,   ///< Element symbol matching
+    INDEX,  ///< Atom index (supports ranges/comparisons)
+    ID,     ///< Atom serial number (supports ranges/comparisons)
+    ALT,    ///< Alternate location identifier
+    B_FACTOR,       ///< B-factor / temperature factor (supports float ranges/comparisons)
+    FRAGMENT,       ///< Fragment number (supports ranges/comparisons)
+    SECONDARY_STRUCTURE,  ///< Secondary structure type
 
     // Molecular component predicates
-    Protein,    ///< Protein atoms
-    Ligand,     ///< Small molecule ligand atoms
-    Water,      ///< Water molecules
-    Solvent,    ///< Solvent molecules (water + common solvents)
-    Organic,    ///< Organic small molecules
-    Backbone,   ///< Protein backbone atoms (N, CA, C, O)
-    Metal,      ///< Metal ions
+    PROTEIN,    ///< Protein atoms
+    LIGAND,     ///< Small molecule ligand atoms
+    WATER,      ///< Water molecules
+    SOLVENT,    ///< Solvent molecules (water + common solvents)
+    ORGANIC,    ///< Organic small molecules
+    BACKBONE,   ///< Protein backbone atoms (N, CA, C, O)
+    METAL,      ///< Metal ions
 
     // Atom type predicates
-    Heavy,              ///< Non-hydrogen atoms
-    Hydrogen,           ///< All hydrogen atoms
-    PolarHydrogen,      ///< Hydrogens bonded to N, O, S
-    NonpolarHydrogen,   ///< Hydrogens bonded to C
+    HEAVY,              ///< Non-hydrogen atoms
+    HYDROGEN,           ///< All hydrogen atoms
+    POLAR_HYDROGEN,     ///< Hydrogens bonded to N, O, S
+    NONPOLAR_HYDROGEN,  ///< Hydrogens bonded to C
 
     // Expansion operators
-    ByRes,      ///< Expand selection to complete residues
-    ByChain,    ///< Expand selection to complete chains
+    BY_RES,     ///< Expand selection to complete residues
+    BY_CHAIN,   ///< Expand selection to complete chains
 
     // Distance operators
-    Around,     ///< Atoms within distance of selection, excluding reference
-    Expand,     ///< Atoms within distance of selection, including reference
-    Beyond,     ///< Atoms outside distance of selection
+    AROUND,     ///< Atoms within distance of selection, excluding reference
+    EXPAND,     ///< Atoms within distance of selection, including reference
+    BEYOND,     ///< Atoms outside distance of selection
 
     // Secondary structure types
-    Helix,  ///< Alpha helix
-    Sheet,  ///< Beta sheet
-    Turn,   ///< Turn
-    Loop,   ///< Loop/coil
+    HELIX,  ///< Alpha helix
+    SHEET,  ///< Beta sheet
+    TURN,   ///< Turn
+    LOOP,   ///< Loop/coil
 
     // Constants
-    True,   ///< Always matches (used for empty/all selections)
-    False   ///< Never matches (used for 'none' keyword)
+    TRUE,   ///< Always matches (used for empty/all selections)
+    FALSE   ///< Never matches (used for 'none' keyword)
 };
 
 /**

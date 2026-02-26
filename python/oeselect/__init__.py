@@ -153,17 +153,14 @@ from .oeselect import (
     OEHasAtomNameAdvanced as _CppOEHasAtomNameAdvanced,
     EvaluateSelection,
     CountSelection,
-    ParseSelectorSet,
-    MolToSelectorSet,
-    StrSelectorSet,
-    GetSelectorString,
+    parse_selector_set,
+    mol_to_selector_set,
+    str_selector_set,
+    get_selector_string,
     select,
     count,
     parse,
-    str_selector_set,
     selector_set,
-    mol_to_selector_set,
-    get_selector_string,
 )
 
 
@@ -339,85 +336,85 @@ class OEHasAtomNameAdvanced(_OEUnaryAtomPred):
 
 # Import PredicateType enum values
 from .oeselect import (
-    PredicateType_And,
-    PredicateType_Or,
-    PredicateType_Not,
-    PredicateType_XOr,
-    PredicateType_Name,
-    PredicateType_Resn,
-    PredicateType_Resi,
-    PredicateType_Chain,
-    PredicateType_Elem,
-    PredicateType_Index,
-    PredicateType_Id,
-    PredicateType_Alt,
-    PredicateType_BFactor,
-    PredicateType_Fragment,
-    PredicateType_SecondaryStructure,
-    PredicateType_Protein,
-    PredicateType_Ligand,
-    PredicateType_Water,
-    PredicateType_Solvent,
-    PredicateType_Organic,
-    PredicateType_Backbone,
-    PredicateType_Metal,
-    PredicateType_Heavy,
-    PredicateType_Hydrogen,
-    PredicateType_PolarHydrogen,
-    PredicateType_NonpolarHydrogen,
-    PredicateType_ByRes,
-    PredicateType_ByChain,
-    PredicateType_Around,
-    PredicateType_Expand,
-    PredicateType_Beyond,
-    PredicateType_Helix,
-    PredicateType_Sheet,
-    PredicateType_Turn,
-    PredicateType_Loop,
-    PredicateType_True,
-    PredicateType_False,
+    PredicateType_AND,
+    PredicateType_OR,
+    PredicateType_NOT,
+    PredicateType_XOR,
+    PredicateType_NAME,
+    PredicateType_RESN,
+    PredicateType_RESI,
+    PredicateType_CHAIN,
+    PredicateType_ELEM,
+    PredicateType_INDEX,
+    PredicateType_ID,
+    PredicateType_ALT,
+    PredicateType_B_FACTOR,
+    PredicateType_FRAGMENT,
+    PredicateType_SECONDARY_STRUCTURE,
+    PredicateType_PROTEIN,
+    PredicateType_LIGAND,
+    PredicateType_WATER,
+    PredicateType_SOLVENT,
+    PredicateType_ORGANIC,
+    PredicateType_BACKBONE,
+    PredicateType_METAL,
+    PredicateType_HEAVY,
+    PredicateType_HYDROGEN,
+    PredicateType_POLAR_HYDROGEN,
+    PredicateType_NONPOLAR_HYDROGEN,
+    PredicateType_BY_RES,
+    PredicateType_BY_CHAIN,
+    PredicateType_AROUND,
+    PredicateType_EXPAND,
+    PredicateType_BEYOND,
+    PredicateType_HELIX,
+    PredicateType_SHEET,
+    PredicateType_TURN,
+    PredicateType_LOOP,
+    PredicateType_TRUE,
+    PredicateType_FALSE,
 )
 
 # Create a namespace for PredicateType enum
 class PredicateType:
     """Enum-like class for predicate types."""
-    And = PredicateType_And
-    Or = PredicateType_Or
-    Not = PredicateType_Not
-    XOr = PredicateType_XOr
-    Name = PredicateType_Name
-    Resn = PredicateType_Resn
-    Resi = PredicateType_Resi
-    Chain = PredicateType_Chain
-    Elem = PredicateType_Elem
-    Index = PredicateType_Index
-    Id = PredicateType_Id
-    Alt = PredicateType_Alt
-    BFactor = PredicateType_BFactor
-    Fragment = PredicateType_Fragment
-    SecondaryStructure = PredicateType_SecondaryStructure
-    Protein = PredicateType_Protein
-    Ligand = PredicateType_Ligand
-    Water = PredicateType_Water
-    Solvent = PredicateType_Solvent
-    Organic = PredicateType_Organic
-    Backbone = PredicateType_Backbone
-    Metal = PredicateType_Metal
-    Heavy = PredicateType_Heavy
-    Hydrogen = PredicateType_Hydrogen
-    PolarHydrogen = PredicateType_PolarHydrogen
-    NonpolarHydrogen = PredicateType_NonpolarHydrogen
-    ByRes = PredicateType_ByRes
-    ByChain = PredicateType_ByChain
-    Around = PredicateType_Around
-    Expand = PredicateType_Expand
-    Beyond = PredicateType_Beyond
-    Helix = PredicateType_Helix
-    Sheet = PredicateType_Sheet
-    Turn = PredicateType_Turn
-    Loop = PredicateType_Loop
-    True_ = PredicateType_True
-    False_ = PredicateType_False
+    And = PredicateType_AND
+    Or = PredicateType_OR
+    Not = PredicateType_NOT
+    XOr = PredicateType_XOR
+    Name = PredicateType_NAME
+    Resn = PredicateType_RESN
+    Resi = PredicateType_RESI
+    Chain = PredicateType_CHAIN
+    Elem = PredicateType_ELEM
+    Index = PredicateType_INDEX
+    Id = PredicateType_ID
+    Alt = PredicateType_ALT
+    BFactor = PredicateType_B_FACTOR
+    Fragment = PredicateType_FRAGMENT
+    SecondaryStructure = PredicateType_SECONDARY_STRUCTURE
+    Protein = PredicateType_PROTEIN
+    Ligand = PredicateType_LIGAND
+    Water = PredicateType_WATER
+    Solvent = PredicateType_SOLVENT
+    Organic = PredicateType_ORGANIC
+    Backbone = PredicateType_BACKBONE
+    Metal = PredicateType_METAL
+    Heavy = PredicateType_HEAVY
+    Hydrogen = PredicateType_HYDROGEN
+    PolarHydrogen = PredicateType_POLAR_HYDROGEN
+    NonpolarHydrogen = PredicateType_NONPOLAR_HYDROGEN
+    ByRes = PredicateType_BY_RES
+    ByChain = PredicateType_BY_CHAIN
+    Around = PredicateType_AROUND
+    Expand = PredicateType_EXPAND
+    Beyond = PredicateType_BEYOND
+    Helix = PredicateType_HELIX
+    Sheet = PredicateType_SHEET
+    Turn = PredicateType_TURN
+    Loop = PredicateType_LOOP
+    True_ = PredicateType_TRUE
+    False_ = PredicateType_FALSE
 
 __all__ = [
     "__version__",

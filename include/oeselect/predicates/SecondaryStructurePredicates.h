@@ -23,7 +23,7 @@ class HelixPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override { return "helix"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Helix; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::HELIX; }
 };
 
 /**
@@ -35,7 +35,7 @@ class SheetPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override { return "sheet"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Sheet; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::SHEET; }
 };
 
 /**
@@ -47,7 +47,7 @@ class TurnPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override { return "turn"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Turn; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::TURN; }
 };
 
 /**
@@ -60,7 +60,7 @@ class LoopPredicate : public Predicate {
 public:
     bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
     [[nodiscard]] std::string ToCanonical() const override { return "loop"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::Loop; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::LOOP; }
 };
 
 }  // namespace OESel

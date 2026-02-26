@@ -20,14 +20,14 @@ namespace {
 unsigned int g_component_tag = 0;
 unsigned int g_tagged_tag = 0;
 
-unsigned int GetComponentTag() {
+unsigned int get_component_tag() {
     if (g_component_tag == 0) {
         g_component_tag = OESystem::OEGetTag("OESel_Component");
     }
     return g_component_tag;
 }
 
-unsigned int GetTaggedTag() {
+unsigned int get_tagged_tag() {
     if (g_tagged_tag == 0) {
         g_tagged_tag = OESystem::OEGetTag("OESel_Tagged");
     }
@@ -76,7 +76,7 @@ const std::set<std::string> SOLVENTS = {
 /**
  * @brief Remove leading and trailing whitespace from a string.
  */
-std::string TrimWhitespace(const std::string& str) {
+std::string trim_whitespace(const std::string& str) {
     std::string result = str;
     while (!result.empty() && std::isspace(static_cast<unsigned char>(result.back()))) {
         result.pop_back();
@@ -94,17 +94,17 @@ std::string TrimWhitespace(const std::string& str) {
  * @param resname The residue name to classify.
  * @return Component flag indicating the residue type.
  */
-ComponentFlag ClassifyResidue(const std::string& resname) {
-    const std::string name = TrimWhitespace(resname);
+ComponentFlag classify_residue(const std::string& resname) {
+    const std::string name = trim_whitespace(resname);
 
-    if (WATER_RESNAMES.count(name)) return ComponentFlag::Water;
-    if (AMINO_ACIDS.count(name)) return ComponentFlag::Protein;
-    if (NUCLEOTIDES.count(name)) return ComponentFlag::Nucleic;
-    if (COFACTORS.count(name)) return ComponentFlag::Cofactor;
-    if (SOLVENTS.count(name)) return ComponentFlag::Solvent;
+    if (WATER_RESNAMES.count(name)) return ComponentFlag::WATER;
+    if (AMINO_ACIDS.count(name)) return ComponentFlag::PROTEIN;
+    if (NUCLEOTIDES.count(name)) return ComponentFlag::NUCLEIC;
+    if (COFACTORS.count(name)) return ComponentFlag::COFACTOR;
+    if (SOLVENTS.count(name)) return ComponentFlag::SOLVENT;
 
     // Unknown residues default to ligand
-    return ComponentFlag::Ligand;
+    return ComponentFlag::LIGAND;
 }
 }  // namespace
 
@@ -118,12 +118,12 @@ void Tagger::TagMolecule(OEChem::OEMolBase& mol) {
         const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&*atom);
         const std::string resname = res.GetName();
 
-        ComponentFlag flag = ClassifyResidue(resname);
-        atom->SetData<unsigned int>(GetComponentTag(), static_cast<uint32_t>(flag));
+        ComponentFlag flag = classify_residue(resname);
+        atom->SetData<unsigned int>(get_component_tag(), static_cast<uint32_t>(flag));
     }
 
     // Mark molecule as tagged to prevent redundant processing
-    mol.SetData<unsigned int>(GetTaggedTag(), 1);
+    mol.SetData<unsigned int>(get_tagged_tag(), 1);
 }
 
 bool Tagger::HasComponent(const OEChem::OEAtomBase& atom, ComponentFlag flag) {
@@ -132,14 +132,14 @@ bool Tagger::HasComponent(const OEChem::OEAtomBase& atom, ComponentFlag flag) {
 }
 
 uint32_t Tagger::GetFlags(const OEChem::OEAtomBase& atom) {
-    if (!atom.HasData(GetComponentTag())) {
+    if (!atom.HasData(get_component_tag())) {
         return 0;
     }
-    return atom.GetData<unsigned int>(GetComponentTag());
+    return atom.GetData<unsigned int>(get_component_tag());
 }
 
 bool Tagger::IsTagged(const OEChem::OEMolBase& mol) {
-    return mol.HasData(GetTaggedTag());
+    return mol.HasData(get_tagged_tag());
 }
 
 }  // namespace OESel

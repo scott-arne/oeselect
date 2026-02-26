@@ -26,13 +26,13 @@ namespace OESel {
  * using bitwise operators for atoms that belong to multiple categories.
  */
 enum class ComponentFlag : uint32_t {
-    None     = 0,       ///< No component assignment
-    Protein  = 1 << 0,  ///< Standard amino acid residues
-    Ligand   = 1 << 1,  ///< Small molecule ligands (default for unknowns)
-    Solvent  = 1 << 2,  ///< Common solvents (DMSO, DMF, etc.)
-    Cofactor = 1 << 3,  ///< Enzyme cofactors (NAD, FAD, etc.)
-    Nucleic  = 1 << 4,  ///< Nucleic acid residues
-    Water    = 1 << 5,  ///< Water molecules (HOH, WAT, etc.)
+    NONE     = 0,       ///< No component assignment
+    PROTEIN  = 1 << 0,  ///< Standard amino acid residues
+    LIGAND   = 1 << 1,  ///< Small molecule ligands (default for unknowns)
+    SOLVENT  = 1 << 2,  ///< Common solvents (DMSO, DMF, etc.)
+    COFACTOR = 1 << 3,  ///< Enzyme cofactors (NAD, FAD, etc.)
+    NUCLEIC  = 1 << 4,  ///< Nucleic acid residues
+    WATER    = 1 << 5,  ///< Water molecules (HOH, WAT, etc.)
 };
 
 /**
