@@ -235,11 +235,11 @@ Selection Introspection
        std::cout << sele.ToCanonical() << "\n";
 
        // Check predicate types
-       if (sele.ContainsPredicate(OESel::PredicateType::Protein)) {
+       if (sele.ContainsPredicate(OESel::PredicateType::PROTEIN)) {
            std::cout << "Contains protein predicate\n";
        }
 
-       if (sele.ContainsPredicate(OESel::PredicateType::Around)) {
+       if (sele.ContainsPredicate(OESel::PredicateType::AROUND)) {
            std::cout << "Contains distance-based predicate\n";
        }
 
