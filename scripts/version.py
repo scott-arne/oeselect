@@ -122,10 +122,18 @@ def _locations() -> list[VersionLocation]:
             replacement=r"\g<1>{major}.{minor}.{patch}",
             extract=r"project\(oeselect VERSION (\d+\.\d+\.\d+)",
         ),
-        # pyproject.toml
+        # pyproject.toml (root — wheel build)
         VersionLocation(
             file=PROJECT_ROOT / "pyproject.toml",
             label="oeselect pyproject.toml",
+            pattern=r'(^version\s*=\s*")[\d.]+(")',
+            replacement=r'\g<1>{major}.{minor}.{patch}\g<2>',
+            extract=r'^version\s*=\s*"([\d.]+)"',
+        ),
+        # pyproject.toml (python/ — editable dev install)
+        VersionLocation(
+            file=PROJECT_ROOT / "python" / "pyproject.toml",
+            label="python/ pyproject.toml",
             pattern=r'(^version\s*=\s*")[\d.]+(")',
             replacement=r'\g<1>{major}.{minor}.{patch}\g<2>',
             extract=r'^version\s*=\s*"([\d.]+)"',
@@ -195,12 +203,14 @@ def _format_version(v: tuple[int, int, int]) -> str:
 
 
 def _get_canonical_version() -> Optional[tuple[int, int, int]]:
-    """Read the canonical version from pyproject.toml.
+    """Read the canonical version from the root pyproject.toml.
 
     :returns: Tuple of (major, minor, patch) or None.
     """
-    loc = _locations()[4]  # oeselect pyproject.toml
-    return loc.read_version_tuple()
+    for loc in _locations():
+        if loc.label == "oeselect pyproject.toml":
+            return loc.read_version_tuple()
+    return None
 
 
 def _update_all(locations: list[VersionLocation], major: int, minor: int,

@@ -12,6 +12,21 @@ Prerequisites
 - **Python**: 3.10 or later (for Python packages)
 - **SWIG**: 4.0 or later (for building Python bindings)
 
+Python Package
+--------------------
+
+The recommended way to install OESelect for Python is via pip:
+
+.. code-block:: bash
+
+   # Install OpenEye Toolkits
+   pip install --extra-index-url https://pypi.anaconda.org/openeye/simple openeye-toolkits
+
+   # Install OESelect (auto-selects correct binary for your OpenEye version)
+   pip install oeselect
+
+The ``oeselect`` package includes compiled C++ extensions.
+
 C++ Library
 -----------
 
@@ -52,59 +67,6 @@ CMake Options
    * - ``OPENEYE_ROOT``
      - (required)
      - Path to OpenEye C++ SDK
-
-Python Package (pip)
---------------------
-
-The recommended way to install OESelect for Python is via pip:
-
-.. code-block:: bash
-
-   # Install OpenEye Toolkits first
-   pip install openeye-toolkits
-
-   # Install OESelect (auto-selects correct binary for your OpenEye version)
-   pip install oeselect
-
-The ``oeselect`` package includes compiled C++ extensions and requires
-a compatible OpenEye Toolkits version.
-
-Verify Installation
-^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: python
-
-   from oeselect import parse, select, count
-
-   # Parse a selection
-   sele = parse("protein and chain A")
-   print(sele.ToCanonical())
-
-   # Use with OpenEye molecule
-   from openeye import oechem
-   mol = oechem.OEGraphMol()
-   oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")
-
-   # Select carbon atoms
-   carbons = select(mol, "elem C")
-   print(f"Found {len(carbons)} carbon atoms")
-
-Building from Source (Python)
------------------------------
-
-If no pre-built wheel is available for your environment, build from source:
-
-.. code-block:: bash
-
-   # Clone the repository
-   git clone https://github.com/your-org/oeselect.git
-   cd oeselect
-
-   # Build wheel (requires OpenEye C++ SDK)
-   python scripts/build_python.py --openeye-root /path/to/openeye/sdk
-
-   # Install the built wheel
-   pip install dist/oeselect-*.whl
 
 Troubleshooting
 ---------------

@@ -43,7 +43,14 @@ NamePredicate::NamePredicate(std::string pattern)
                     pattern_.find('?') != std::string::npos) {}
 
 bool NamePredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
-    const std::string name = atom.GetName();
+    std::string name = atom.GetName();
+
+    // PDB/CIF atom names are padded with spaces (e.g. " CA "); strip for matching
+    auto start = name.find_first_not_of(' ');
+    auto end = name.find_last_not_of(' ');
+    if (start != std::string::npos) {
+        name = name.substr(start, end - start + 1);
+    }
 
     if (has_wildcard_) {
         return fnmatch(pattern_.c_str(), name.c_str(), 0) == 0;
@@ -870,19 +877,19 @@ std::string ByChainPredicate::ToCanonical() const {
 // HelixPredicate implementation
 bool HelixPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
-    return res.GetSecondaryStructure() == OEBio::OESecondaryStructure::Helix;
+    return (res.GetSecondaryStructure() & OEBio::OESecondaryStructure::Helix) != 0;
 }
 
 // SheetPredicate implementation
 bool SheetPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
-    return res.GetSecondaryStructure() == OEBio::OESecondaryStructure::Sheet;
+    return (res.GetSecondaryStructure() & OEBio::OESecondaryStructure::Sheet) != 0;
 }
 
 // TurnPredicate implementation
 bool TurnPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
-    return res.GetSecondaryStructure() == OEBio::OESecondaryStructure::Turn;
+    return (res.GetSecondaryStructure() & OEBio::OESecondaryStructure::Turn) != 0;
 }
 
 // LoopPredicate implementation
@@ -890,9 +897,9 @@ bool LoopPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
     const unsigned int ss = res.GetSecondaryStructure();
     // Loop/coil is anything that's not helix, sheet, or turn
-    return ss != OEBio::OESecondaryStructure::Helix &&
-           ss != OEBio::OESecondaryStructure::Sheet &&
-           ss != OEBio::OESecondaryStructure::Turn;
+    return (ss & OEBio::OESecondaryStructure::Helix) == 0 &&
+           (ss & OEBio::OESecondaryStructure::Sheet) == 0 &&
+           (ss & OEBio::OESecondaryStructure::Turn) == 0;
 }
 
 }  // namespace OESel

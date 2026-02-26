@@ -148,6 +148,45 @@ add_custom_command(TARGET oeselect_python POST_BUILD
     COMMENT "Copying Python module to ${PYTHON_OUTPUT_DIR}"
 )
 
+# For editable dev installs, the site-packages relative RPATH won't resolve.
+# Add the absolute path to the OpenEye libs so the dev copy works directly.
+if(APPLE AND OpenEye_LIBRARY_TYPE STREQUAL "SHARED" AND OPENEYE_PLATFORM)
+    find_program(INSTALL_NAME_TOOL install_name_tool)
+    if(INSTALL_NAME_TOOL)
+        execute_process(
+            COMMAND ${Python3_EXECUTABLE} -c "from openeye import libs; print(libs.FindOpenEyeDLLSDirectory())"
+            OUTPUT_VARIABLE OPENEYE_LIB_DIR
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+        if(OPENEYE_LIB_DIR)
+            add_custom_command(TARGET oeselect_python POST_BUILD
+                COMMAND ${INSTALL_NAME_TOOL} -add_rpath "${OPENEYE_LIB_DIR}"
+                    ${PYTHON_OUTPUT_DIR}/$<TARGET_FILE_NAME:oeselect_python>
+                COMMAND codesign -f -s - ${PYTHON_OUTPUT_DIR}/$<TARGET_FILE_NAME:oeselect_python>
+                COMMENT "Adding OpenEye RPATH for editable dev install"
+            )
+        endif()
+    endif()
+elseif(UNIX AND OpenEye_LIBRARY_TYPE STREQUAL "SHARED" AND OPENEYE_PLATFORM)
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "from openeye import libs; print(libs.FindOpenEyeDLLSDirectory())"
+        OUTPUT_VARIABLE OPENEYE_LIB_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(OPENEYE_LIB_DIR)
+        find_program(PATCHELF patchelf)
+        if(PATCHELF)
+            add_custom_command(TARGET oeselect_python POST_BUILD
+                COMMAND ${PATCHELF} --add-rpath "${OPENEYE_LIB_DIR}"
+                    ${PYTHON_OUTPUT_DIR}/$<TARGET_FILE_NAME:oeselect_python>
+                COMMENT "Adding OpenEye RPATH for editable dev install"
+            )
+        endif()
+    endif()
+endif()
+
 # Also copy liboeselect for standalone package
 add_custom_command(TARGET oeselect_python POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy

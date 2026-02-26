@@ -69,7 +69,7 @@ struct kw_none : TAO_PEGTL_ISTRING("none") {};
 
 // Component keywords
 struct kw_protein : TAO_PEGTL_ISTRING("protein") {};
-struct kw_ligand : TAO_PEGTL_ISTRING("ligand") {};
+struct kw_ligand : pegtl::sor<TAO_PEGTL_ISTRING("ligand"), TAO_PEGTL_ISTRING("lig")> {};
 struct kw_water : TAO_PEGTL_ISTRING("water") {};
 struct kw_solvent : TAO_PEGTL_ISTRING("solvent") {};
 struct kw_organic : TAO_PEGTL_ISTRING("organic") {};

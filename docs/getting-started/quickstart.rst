@@ -8,49 +8,99 @@ Selection Syntax
 
 OESelect uses PyMOL-compatible selection syntax:
 
-**Atom Properties:**
+.. list-table:: Atom Properties
+   :header-rows: 1
+   :widths: 30 70
 
-- ``name CA`` - Select atoms named "CA"
-- ``name C*`` - Wildcard pattern matching
-- ``resn ALA`` - Residue name
-- ``resi 100`` - Residue number
-- ``resi 50-100`` - Residue range
-- ``chain A`` - Chain identifier
-- ``elem C`` - Element symbol
-- ``index < 100`` - Atom index comparison
+   * - Selector
+     - Description
+   * - ``name CA``
+     - Select atoms named "CA"
+   * - ``name C*``
+     - Wildcard pattern matching
+   * - ``resn ALA``
+     - Residue name
+   * - ``resi 100``
+     - Residue number
+   * - ``resi 50-100``
+     - Residue range
+   * - ``chain A``
+     - Chain identifier
+   * - ``elem C``
+     - Element symbol
+   * - ``index < 100``
+     - Atom index comparison
 
-**Component Types:**
+.. list-table:: Component Types
+   :header-rows: 1
+   :widths: 30 70
 
-- ``protein`` - Protein atoms
-- ``ligand`` - Ligand atoms
-- ``water`` - Water molecules
-- ``solvent`` - Solvent molecules
-- ``backbone`` or ``bb`` - Backbone atoms (N, CA, C, O)
-- ``metal`` - Metal ions
+   * - Selector
+     - Description
+   * - ``protein``
+     - Protein atoms
+   * - ``ligand``, ``lig``
+     - Ligand atoms
+   * - ``water``
+     - Water molecules
+   * - ``solvent``
+     - Solvent molecules
+   * - ``backbone``, ``bb``
+     - Backbone atoms (N, CA, C, O)
+   * - ``metal``
+     - Metal ions
 
-**Atom Types:**
+.. list-table:: Atom Types
+   :header-rows: 1
+   :widths: 30 70
 
-- ``heavy`` - Non-hydrogen atoms
-- ``hydrogen`` or ``h`` - Hydrogen atoms
+   * - Selector
+     - Description
+   * - ``heavy``
+     - Non-hydrogen atoms
+   * - ``hydrogen``, ``h``
+     - Hydrogen atoms
 
-**Secondary Structure:**
+.. list-table:: Secondary Structure
+   :header-rows: 1
+   :widths: 30 70
 
-- ``helix`` - Alpha helix atoms
-- ``sheet`` - Beta sheet atoms
-- ``turn`` - Turn atoms
-- ``loop`` - Loop/coil atoms
+   * - Selector
+     - Description
+   * - ``helix``
+     - Alpha helix atoms
+   * - ``sheet``
+     - Beta sheet atoms
+   * - ``turn``
+     - Turn atoms
+   * - ``loop``
+     - Loop/coil atoms
 
-**Logical Operators:**
+.. list-table:: Logical Operators
+   :header-rows: 1
+   :widths: 30 70
 
-- ``and`` or ``&`` - Logical AND
-- ``or`` or ``|`` - Logical OR
-- ``not`` or ``!`` - Logical NOT
-- Parentheses for grouping
+   * - Operator
+     - Description
+   * - ``and``, ``&``
+     - Logical AND
+   * - ``or``, ``|``
+     - Logical OR
+   * - ``not``, ``!``
+     - Logical NOT
+   * - ``( )``
+     - Grouping
 
-**Special:**
+.. list-table:: Special
+   :header-rows: 1
+   :widths: 30 70
 
-- ``all`` - All atoms
-- ``none`` - No atoms
+   * - Selector
+     - Description
+   * - ``all``
+     - All atoms
+   * - ``none``
+     - No atoms
 
 Python Quick Start
 ------------------
@@ -60,72 +110,69 @@ Basic Selection
 
 .. code-block:: python
 
-   from oeselect import parse, select, count
-   from openeye import oechem
+    from oeselect import select, count
+    from openeye import oechem
 
-   # Create a molecule
-   mol = oechem.OEGraphMol()
-   oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")  # Aspirin
+    # Create a molecule
+    mol = oechem.OEGraphMol()
+    oechem.OESmilesToMol(mol, "CC(=O)OC1=CC=CC=C1C(=O)O")  # Aspirin
 
-   # Select atoms by element
-   carbon_indices = select(mol, "elem C")
-   print(f"Carbon atoms: {carbon_indices}")
+    # Select atoms by element
+    carbon_indices = select(mol, "elem C")
+    print(f"Carbon atom indices: {carbon_indices}")
 
-   # Count matching atoms
-   num_oxygens = count(mol, "elem O")
-   print(f"Number of oxygens: {num_oxygens}")
+    # Count matching atoms
+    num_oxygens = count(mol, "elem O")
+    print(f"Number of oxygens: {num_oxygens}")
 
-   # Complex selections
-   heavy_atoms = select(mol, "heavy and not elem O")
+    # Complex selections
+    complex_oxygen_indices = select(mol, "heavy and not elem C")
+    print(f"Oxygen atom indices: {complex_oxygen_indices}")
 
-Selection Parsing
-^^^^^^^^^^^^^^^^^
+Outputs:
 
-.. code-block:: python
+.. code-block:: text
 
-   from oeselect import parse, PredicateType
-
-   # Parse and validate a selection string
-   sele = parse("protein and chain A")
-
-   # Get canonical form
-   print(sele.ToCanonical())  # "(chain A and protein)"
-
-   # Check predicate types
-   if sele.ContainsPredicate(PredicateType.Protein):
-       print("Selection includes protein predicate")
-
-   if sele.ContainsPredicate(PredicateType.Chain):
-       print("Selection includes chain predicate")
+    Carbon atom indices: [0, 1, 4, 5, 6, 7, 8, 9, 10]
+    Number of oxygens: 4
+    Oxygen atom indices: [2, 3, 11, 12]
 
 Working with Proteins
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-   from openeye import oechem
-   from oeselect import OESelect, select, count
+    from openeye import oechem
+    from oeselect import OESelect, select, count
 
-   # Load a protein structure
-   mol = oechem.OEGraphMol()
-   ifs = oechem.oemolistream("protein.pdb")
-   oechem.OEReadMolecule(ifs, mol)
+    # Load a protein structure
+    mol = oechem.OEGraphMol()
+    with oechem.oemolistream("tests/assets/9Q03.cif") as ifs:
+        oechem.OEReadMolecule(ifs, mol)
 
-   # Select backbone atoms in chain A
-   bb_chain_a = select(mol, "backbone and chain A")
+    # Get the ligand
+    lig = oechem.OEGraphMol()
+    lig_sel = OESelect(mol, "ligand")
+    oechem.OESubsetMol(lig, mol, lig_sel)
 
-   # Select all non-water heavy atoms
-   heavy_non_water = select(mol, "heavy and not water")
+    print(f"Ligand SMILES: {oechem.OEMolToSmiles(lig)}")
 
-   # Count residues in helix
-   helix_count = count(mol, "helix and name CA")
-   print(f"CA atoms in helix: {helix_count}")
+    # Select backbone atoms in chain A
+    bb_chain_a = select(mol, "backbone and chain A")
 
-   # Use OESelect as a predicate with OpenEye functions
-   pred = OESelect(mol, "protein and chain A")
-   for atom in mol.GetAtoms(pred):
-       print(atom.GetName())
-   num_selected = oechem.OECount(mol, pred)
+    # Select all non-water heavy atoms
+    heavy_non_water = select(mol, "heavy and not water")
+
+    # Count residues in helix
+    helix_count = count(mol, "helix and name CA")
+    print(f"CA atoms in helix: {helix_count}")
+
+Outputs:
+
+.. code-block:: text
+
+    Ligand SMILES: CC(C)(CCn1c2cc(ccc2n(c1=O)C)Nc3c(cnc(n3)N(C)C4CCN(CC4)c5ccc6c(c5)n(nc6[C@H]7CCC(=O)NC7=O)C)Cl)O
+    CA atoms in helix: 220
 
 C++ Quick Start
 ---------------

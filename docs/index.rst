@@ -22,10 +22,8 @@ OESelect provides tools for:
 Key Features
 ------------
 
-- **Familiar Syntax**: Uses PyMOL selection language (``name CA``, ``chain A``, ``protein and not backbone``)
-- **Fast Evaluation**: C++ core with per-molecule caching and spatial indexing
-- **Thread-Safe**: Parsed selections are immutable and shareable across threads
-- **Comprehensive Predicates**: Atom properties, component types, distance operators, and more
+- **Familiar Syntax**: Based on the PyMOL selection language
+- **Fast Evaluation and Thread Safe**: C++ core with per-molecule caching and spatial indexing
 - **Python Bindings**: Full SWIG-based Python bindings with OpenEye integration
 
 Quick Links

@@ -479,7 +479,7 @@ def str_selector_set(mol, selection_str):
 
         selectors = str_selector_set(mol, "protein")
     """
-    return str_selector_set(mol, selection_str)
+    return _oeselect.str_selector_set(mol, selection_str)
 
 def selector_set(selector_str):
     """Parse a selector string into a set of Selector objects.
@@ -491,7 +491,7 @@ def selector_set(selector_str):
 
         sels = selector_set("ALA:123: :A,GLY:124: :A")
     """
-    return parse_selector_set(selector_str)
+    return _oeselect.parse_selector_set(selector_str)
 
 def mol_to_selector_set(mol):
     """Extract unique Selector objects from all atoms in a molecule.
@@ -503,7 +503,7 @@ def mol_to_selector_set(mol):
 
         selectors = mol_to_selector_set(mol)
     """
-    return mol_to_selector_set(mol)
+    return _oeselect.mol_to_selector_set(mol)
 
 def get_selector_string(atom):
     """Get the selector string for an atom.
@@ -516,7 +516,7 @@ def get_selector_string(atom):
         for atom in mol.GetAtoms():
             print(get_selector_string(atom))
     """
-    return get_selector_string(atom)
+    return _oeselect.get_selector_string(atom)
 
 __version__ = "1.0.0"
 %}

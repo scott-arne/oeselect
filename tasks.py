@@ -39,21 +39,39 @@ def docs(ctx, clean=False):
 
 
 @task
-def serve_docs(ctx, port=8000, clean=False):
+def serve_docs(ctx, port=8000, clean=False, watch=False):
     """Build documentation and serve at localhost.
 
     :param port: Port to serve on (default: 8000).
     :param clean: Clean build first.
+    :param watch: Auto-rebuild and reload on source changes.
     """
-    # Build first
-    docs(ctx, clean=clean)
+    if clean:
+        os.chdir(DOCS_DIR)
+        print("Cleaning build directory...")
+        ctx.run("make clean", warn=True)
 
-    # Serve
-    print(f"\nServing documentation at http://localhost:{port}")
-    print("Press Ctrl+C to stop.\n")
+    if watch:
+        print(f"\nWatching for changes and serving at http://localhost:{port}")
+        print("Press Ctrl+C to stop.\n")
+        os.chdir(DOCS_DIR)
+        ctx.run(
+            f"{sys.executable} -m sphinx_autobuild"
+            f" . {HTML_DIR}"
+            f" --port {port}"
+            f" --open-browser"
+            f" --re-ignore '/_doxygen/'"
+            f" --re-ignore '/cpp-api/'"
+            f" --re-ignore '/_build/'"
+        )
+    else:
+        docs(ctx, clean=False)
 
-    os.chdir(HTML_DIR)
-    ctx.run(f"{sys.executable} -m http.server {port}")
+        print(f"\nServing documentation at http://localhost:{port}")
+        print("Press Ctrl+C to stop.\n")
+
+        os.chdir(HTML_DIR)
+        ctx.run(f"{sys.executable} -m http.server {port}")
 
 
 @task
