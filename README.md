@@ -23,8 +23,8 @@ from openeye import oechem
 from oeselect import OESelect, select, count, parse
 
 mol = oechem.OEGraphMol()
-ifs = oechem.oemolistream("structure.pdb")
-oechem.OEReadMolecule(ifs, mol)
+with oechem.oemolistream("structure.pdb") as ifs:
+    oechem.OEReadMolecule(ifs, mol)
 
 # Select atoms matching a query (returns atom indices)
 backbone_indices = select(mol, "backbone and chain A")
