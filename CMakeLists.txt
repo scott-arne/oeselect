@@ -21,13 +21,17 @@ if(APPLE AND OESELECT_UNIVERSAL2)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version" FORCE)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 # Dependencies
-find_package(OpenEye REQUIRED)
-
-# Fetch header-only dependencies
 include(FetchContent)
+
+FetchContent_Declare(
+    cmake_openeye
+    GIT_REPOSITORY file:///Users/johnss51/Development/cpp/cmake-openeye
+    GIT_TAG v1.0.0
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(cmake_openeye)
+list(APPEND CMAKE_MODULE_PATH "${cmake_openeye_SOURCE_DIR}")
 
 FetchContent_Declare(
     pegtl
@@ -49,6 +53,12 @@ if(OESELECT_BUILD_PYTHON)
     find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
     find_package(SWIG 4.0)
 endif()
+
+if(OPENEYE_USE_SHARED)
+    find_package(OpenEyePython REQUIRED)
+endif()
+
+find_package(OpenEye REQUIRED)
 
 # Library sources (empty for now, will populate)
 set(OESELECT_SOURCES
