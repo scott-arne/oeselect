@@ -7,6 +7,7 @@ on:
 
 env:
   GCS_BUCKET: openeye-sdks
+  OPENEYE_VERSION: "2025.2.1"
 
 jobs:
   build-linux:
@@ -83,7 +84,7 @@ jobs:
 
       - name: Install openeye-toolkits Python package
         run: |
-          /opt/venv/bin/pip install openeye-toolkits \
+          /opt/venv/bin/pip install openeye-toolkits==${{ env.OPENEYE_VERSION }} \
             --extra-index-url https://pypi.anaconda.org/openeye/simple \
             --no-cache-dir
           echo "--- Verifying openeye-toolkits installation ---"
@@ -174,7 +175,7 @@ jobs:
 
       - name: Install openeye-toolkits Python package
         run: |
-          pip install openeye-toolkits \
+          pip install openeye-toolkits==${{ env.OPENEYE_VERSION }} \
             --extra-index-url https://pypi.anaconda.org/openeye/simple \
             --no-cache-dir
           echo "--- Verifying openeye-toolkits installation ---"
