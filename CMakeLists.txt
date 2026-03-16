@@ -26,7 +26,7 @@ include(FetchContent)
 
 FetchContent_Declare(
     cmake_openeye
-    GIT_REPOSITORY file:///Users/johnss51/Development/cpp/cmake-openeye
+    GIT_REPOSITORY https://github.com/scott-arne/cmake-openeye.git
     GIT_TAG v1.0.0
     GIT_SHALLOW TRUE
 )
