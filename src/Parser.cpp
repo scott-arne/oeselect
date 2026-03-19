@@ -76,6 +76,7 @@ struct kw_organic : TAO_PEGTL_ISTRING("organic") {};
 struct kw_backbone : pegtl::sor<TAO_PEGTL_ISTRING("backbone"), TAO_PEGTL_ISTRING("bb")> {};
 struct kw_sidechain : pegtl::sor<TAO_PEGTL_ISTRING("sidechain"), TAO_PEGTL_ISTRING("sc")> {};
 struct kw_metal : pegtl::sor<TAO_PEGTL_ISTRING("metals"), TAO_PEGTL_ISTRING("metal")> {};
+struct kw_capping : pegtl::sor<TAO_PEGTL_ISTRING("capping"), TAO_PEGTL_ISTRING("caps")> {};
 
 // Atom type keywords (order matters for disambiguation)
 struct kw_heavy : TAO_PEGTL_ISTRING("heavy") {};
@@ -167,6 +168,7 @@ struct organic_spec : kw_organic {};
 struct backbone_spec : kw_backbone {};
 struct sidechain_spec : kw_sidechain {};
 struct metal_spec : kw_metal {};
+struct capping_spec : kw_capping {};
 
 struct heavy_spec : kw_heavy {};
 struct polar_hydrogen_spec : kw_polar_hydrogen {};
@@ -223,7 +225,7 @@ struct specifier : pegtl::sor<
     name_spec, resn_spec, resi_spec, chain_spec, elem_spec, index_spec,
     id_spec, alt_spec, b_spec, frag_spec,
     protein_spec, ligand_spec, water_spec, solvent_spec, organic_spec,
-    backbone_spec, sidechain_spec, metal_spec,
+    backbone_spec, sidechain_spec, metal_spec, capping_spec,
     helix_spec, sheet_spec, turn_spec, loop_spec,
     heavy_spec, polar_hydrogen_spec, nonpolar_hydrogen_spec, hydrogen_spec,
     all_spec, none_spec
@@ -760,6 +762,14 @@ struct Action<Grammar::metal_spec> {
     template<typename ActionInput>
     static void apply(const ActionInput&, ParserState& state) {
         state.PushOperand(std::make_shared<MetalPredicate>());
+    }
+};
+
+template<>
+struct Action<Grammar::capping_spec> {
+    template<typename ActionInput>
+    static void apply(const ActionInput&, ParserState& state) {
+        state.PushOperand(std::make_shared<CappingPredicate>());
     }
 };
 

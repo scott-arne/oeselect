@@ -97,6 +97,7 @@ instance, which maintains a per-molecule evaluation context with lazy-initialize
 | `backbone` / `bb`  | Protein backbone atoms (N, CA, C, O)                       |
 | `sidechain` / `sc` | Protein sidechain atoms (excludes N, CA, C, O, OXT)        |
 | `metal` / `metals` | Metal ions (Li, Na, Mg, K, Ca, Fe, Zn, Cu, and others)     |
+| `capping` / `caps` | Terminal capping groups (ACE, NME)                          |
 
 ### Atom Types
 

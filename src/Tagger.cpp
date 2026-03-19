@@ -44,6 +44,14 @@ const std::set<std::string> AMINO_ACIDS = {
     "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL",
     // Common protonation states and modifications
     "HID", "HIE", "HIP", "CYX", "ASH", "GLH",
+    // CHARMM histidine naming
+    "HSD", "HSE", "HSP",
+    // Additional protonation states
+    "CYM", "LYN",
+    // Non-standard amino acids
+    "MSE", "SEC", "PYL",
+    // Ambiguous codes
+    "ASX", "GLX",
     // Terminal capping groups
     "ACE", "NME"
 };
@@ -70,7 +78,7 @@ const std::set<std::string> COFACTORS = {
 };
 
 const std::set<std::string> SOLVENTS = {
-    "DMS", "DMF", "ACN", "MET", "EOH", "IPA", "GOL", "PEG", "EDO"
+    "DMS", "DMF", "ACN", "MOH", "EOH", "IPA", "GOL", "PEG", "EDO"
 };
 
 /**

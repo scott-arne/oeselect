@@ -7,13 +7,16 @@
 from sys import version_info as _swig_python_version_info
 # Import the low-level C/C++ module
 if getattr(globals().get("__spec__"), "parent", None) or __package__ or "." in __name__:
+    # noinspection PyUnresolvedReferences
     from . import _oeselect
 else:
+    # noinspection PyUnresolvedReferences
     import _oeselect
 
 try:
     import builtins as __builtin__
 except ImportError:
+    # noinspection PyUnresolvedReferences
     import __builtin__
 
 def _swig_repr(self):
@@ -58,6 +61,7 @@ class _SwigNonDynamicMeta(type):
     __setattr__ = _swig_setattr_nondynamic_class_variable(type.__setattr__)
 
 
+# noinspection PyPropertyDefinition
 class SwigPyIterator(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
 
@@ -118,6 +122,9 @@ class SwigPyIterator(object):
 
 # Register SwigPyIterator in _oeselect:
 _oeselect.SwigPyIterator_swigregister(SwigPyIterator)
+
+
+# noinspection PyPropertyDefinition
 class UnsignedIntVector(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
@@ -223,6 +230,9 @@ class UnsignedIntVector(object):
 
 # Register UnsignedIntVector in _oeselect:
 _oeselect.UnsignedIntVector_swigregister(UnsignedIntVector)
+
+
+# noinspection PyPropertyDefinition
 class SelectorSet(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr

@@ -512,6 +512,14 @@ bool SidechainPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) 
     return true;
 }
 
+// CappingPredicate implementation - ACE, NME terminal caps
+
+bool CappingPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
+    const OEChem::OEResidue& res = OEChem::OEAtomGetResidue(&atom);
+    const std::string resn = res.GetName();
+    return resn == "ACE" || resn == "NME";
+}
+
 // MetalPredicate implementation - metal elements
 
 bool MetalPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {

@@ -2772,3 +2772,206 @@ TEST(ExpansionPredicateTest, ByChainCaseInsensitive) {
     EXPECT_TRUE(sel_upper(*a2));
     EXPECT_TRUE(sel_mixed(*a2));
 }
+
+// ============================================================================
+// Capping Predicate Tests
+// ============================================================================
+
+TEST(CappingPredicateTest, CappingMatchesACE) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(=O)N");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ACE");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel(mol, "capping");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()));
+}
+
+TEST(CappingPredicateTest, CappingMatchesNME) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CNC");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("NME");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel(mol, "capping");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, static_cast<int>(mol.NumAtoms()));
+}
+
+TEST(CappingPredicateTest, CappingDoesNotMatchStandardAminoAcid) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ALA");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel(mol, "capping");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 0);
+}
+
+TEST(CappingPredicateTest, CapsAlias) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(=O)N");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ACE");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel_capping(mol, "capping");
+    OESelect sel_caps(mol, "caps");
+
+    int count_capping = 0, count_caps = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel_capping(*atom)) count_capping++;
+        if (sel_caps(*atom)) count_caps++;
+    }
+    EXPECT_EQ(count_capping, count_caps);
+    EXPECT_GT(count_capping, 0);
+}
+
+TEST(CappingPredicateTest, ProteinAndNotCapping) {
+    OEChem::OEGraphMol mol;
+    auto* a1 = mol.NewAtom(6);
+    auto* a2 = mol.NewAtom(7);
+    auto* a3 = mol.NewAtom(6);
+
+    OEChem::OEResidue resALA, resACE;
+    resALA.SetName("ALA");
+    resALA.SetResidueNumber(1);
+    resACE.SetName("ACE");
+    resACE.SetResidueNumber(0);
+
+    OEChem::OEAtomSetResidue(a1, resALA);
+    OEChem::OEAtomSetResidue(a2, resALA);
+    OEChem::OEAtomSetResidue(a3, resACE);
+
+    OESelect sel(mol, "protein and not capping");
+
+    EXPECT_TRUE(sel(*a1));   // ALA is protein and not capping
+    EXPECT_TRUE(sel(*a2));   // ALA is protein and not capping
+    EXPECT_FALSE(sel(*a3));  // ACE is protein but also capping
+}
+
+TEST(CappingPredicateTest, CappingIsAlsoProtein) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC(=O)N");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("ACE");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    OESelect sel_protein(mol, "protein");
+    OESelect sel_capping(mol, "capping");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_TRUE(sel_protein(*atom));
+        EXPECT_TRUE(sel_capping(*atom));
+    }
+}
+
+TEST(CappingPredicateTest, ContainsPredicateCapping) {
+    OESelection sele = OESelection::Parse("capping");
+    EXPECT_TRUE(sele.ContainsPredicate(PredicateType::CAPPING));
+    EXPECT_FALSE(sele.ContainsPredicate(PredicateType::PROTEIN));
+}
+
+TEST(CappingPredicateTest, ToCanonical) {
+    OESelection sele = OESelection::Parse("capping");
+    EXPECT_EQ(sele.ToCanonical(), "capping");
+
+    OESelection sele_caps = OESelection::Parse("caps");
+    EXPECT_EQ(sele_caps.ToCanonical(), "capping");
+}
+
+// ============================================================================
+// Expanded Protein Residue Tests
+// ============================================================================
+
+TEST(TaggerTest, AdditionalAminoAcidVariants) {
+    std::vector<std::string> new_variants = {
+        "MSE", "SEC", "PYL", "ASX", "GLX",
+        "HSD", "HSE", "HSP", "CYM", "LYN"
+    };
+
+    for (const auto& res_name : new_variants) {
+        OEChem::OEGraphMol mol;
+        OEChem::OESmilesToMol(mol, "CC");
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            OEChem::OEResidue res;
+            res.SetName(res_name.c_str());
+            OEChem::OEAtomSetResidue(&(*atom), res);
+        }
+
+        Tagger::TagMolecule(mol);
+
+        for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+            EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::PROTEIN))
+                << "Failed for amino acid variant: " << res_name;
+        }
+    }
+}
+
+// ============================================================================
+// Solvent Bug Fix Tests (MET -> MOH)
+// ============================================================================
+
+TEST(TaggerTest, MethanolClassifiedAsSolvent) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CO");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("MOH");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    Tagger::TagMolecule(mol);
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::SOLVENT));
+    }
+}
+
+TEST(TaggerTest, MethionineStillClassifiedAsProtein) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "CC");
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        OEChem::OEResidue res;
+        res.SetName("MET");
+        OEChem::OEAtomSetResidue(&(*atom), res);
+    }
+
+    Tagger::TagMolecule(mol);
+
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::PROTEIN));
+    }
+}

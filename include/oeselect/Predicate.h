@@ -55,6 +55,7 @@ enum class PredicateType {
     ORGANIC,    ///< Organic small molecules
     BACKBONE,   ///< Protein backbone atoms (N, CA, C, O)
     METAL,      ///< Metal ions
+    CAPPING,    ///< Terminal capping groups (ACE, NME)
 
     // Atom type predicates
     HEAVY,              ///< Non-hydrogen atoms

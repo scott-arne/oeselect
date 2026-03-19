@@ -104,6 +104,20 @@ public:
 };
 
 /**
+ * @brief Matches atoms in terminal capping groups (ACE, NME).
+ *
+ * Selects atoms in residues named ACE (acetyl) or NME (N-methyl amide).
+ * These residues remain classified as PROTEIN in the Tagger; this keyword
+ * is a convenience for selecting or excluding caps specifically.
+ */
+class CappingPredicate : public Predicate {
+public:
+    bool Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const override;
+    [[nodiscard]] std::string ToCanonical() const override { return "capping"; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::CAPPING; }
+};
+
+/**
  * @brief Matches metal ions.
  *
  * Uses atomic number ranges to identify common biologically relevant

@@ -24,7 +24,7 @@
 /** @brief Minor version number */
 #define OESELECT_VERSION_MINOR 1
 /** @brief Patch version number */
-#define OESELECT_VERSION_PATCH 1
+#define OESELECT_VERSION_PATCH 2
 
 /**
  * @namespace OESel
