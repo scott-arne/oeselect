@@ -7,16 +7,13 @@
 from sys import version_info as _swig_python_version_info
 # Import the low-level C/C++ module
 if getattr(globals().get("__spec__"), "parent", None) or __package__ or "." in __name__:
-    # noinspection PyUnresolvedReferences
     from . import _oeselect
 else:
-    # noinspection PyUnresolvedReferences
     import _oeselect
 
 try:
     import builtins as __builtin__
 except ImportError:
-    # noinspection PyUnresolvedReferences
     import __builtin__
 
 def _swig_repr(self):
@@ -61,7 +58,6 @@ class _SwigNonDynamicMeta(type):
     __setattr__ = _swig_setattr_nondynamic_class_variable(type.__setattr__)
 
 
-# noinspection PyPropertyDefinition
 class SwigPyIterator(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
 
@@ -122,9 +118,6 @@ class SwigPyIterator(object):
 
 # Register SwigPyIterator in _oeselect:
 _oeselect.SwigPyIterator_swigregister(SwigPyIterator)
-
-
-# noinspection PyPropertyDefinition
 class UnsignedIntVector(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
@@ -230,9 +223,6 @@ class UnsignedIntVector(object):
 
 # Register UnsignedIntVector in _oeselect:
 _oeselect.UnsignedIntVector_swigregister(UnsignedIntVector)
-
-
-# noinspection PyPropertyDefinition
 class SelectorSet(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
@@ -426,6 +416,7 @@ PredicateType_SOLVENT = _oeselect.PredicateType_SOLVENT
 PredicateType_ORGANIC = _oeselect.PredicateType_ORGANIC
 PredicateType_BACKBONE = _oeselect.PredicateType_BACKBONE
 PredicateType_METAL = _oeselect.PredicateType_METAL
+PredicateType_CAPPING = _oeselect.PredicateType_CAPPING
 PredicateType_HEAVY = _oeselect.PredicateType_HEAVY
 PredicateType_HYDROGEN = _oeselect.PredicateType_HYDROGEN
 PredicateType_POLAR_HYDROGEN = _oeselect.PredicateType_POLAR_HYDROGEN
@@ -715,6 +706,6 @@ def get_selector_string(atom):
     """
     return _oeselect.get_selector_string(atom)
 
-__version__ = "1.0.0"
+__version__ = "1.1.3"
 
 

@@ -98,8 +98,8 @@ import re
 import warnings
 
 # Version info
-__version__ = "1.1.3"
-__version_info__ = (1, 1, 3)
+__version__ = "1.1.4"
+__version_info__ = (1, 1, 4)
 
 
 def _ensure_library_compat():
@@ -183,16 +183,15 @@ def _ensure_library_compat():
 
 
 def _preload_shared_libs():
-    """Preload OpenEye shared libraries on Linux so the C extension can find them.
+    """Preload OpenEye shared libraries so the C extension can find them.
 
     On Linux, auditwheel excludes OpenEye libraries from the wheel but the
-    resulting RUNPATH does not include the OpenEye library directory. This
-    function preloads all OpenEye shared libraries with RTLD_GLOBAL so the
-    dynamic linker can resolve them when the extension is imported.
+    resulting RUNPATH does not include the OpenEye library directory.
+    On macOS, @rpath references may not resolve without preloading.
     """
     import ctypes
     import sys
-    if sys.platform != 'linux':
+    if sys.platform not in ('linux', 'darwin'):
         return
 
     try:
@@ -212,9 +211,9 @@ def _preload_shared_libs():
     if not os.path.isdir(oe_lib_dir):
         return
 
-    # Preload from the OpenEye library directory (handles version-match case)
+    ext = '.dylib' if sys.platform == 'darwin' else '.so'
     for f in sorted(os.listdir(oe_lib_dir)):
-        if f.endswith('.so') or '.so.' in f:
+        if f.endswith(ext) or (ext == '.so' and '.so.' in f):
             try:
                 ctypes.CDLL(os.path.join(oe_lib_dir, f), mode=ctypes.RTLD_GLOBAL)
             except OSError:
@@ -231,6 +230,48 @@ def _preload_shared_libs():
                 ctypes.CDLL(symlink, mode=ctypes.RTLD_GLOBAL)
             except OSError:
                 pass
+
+
+def _preload_bundled_libs():
+    """Preload libraries bundled by auditwheel from the .libs directory.
+
+    auditwheel repair bundles non-manylinux dependencies (e.g. libraries
+    from FetchContent or system packages) into a ``<package>.libs/``
+    directory next to the package. The bundled copies have hashed filenames
+    and must be loaded before the C extension to satisfy its DT_NEEDED
+    entries.
+
+    Libraries may have inter-dependencies, so we do multiple passes
+    until no new libraries can be loaded.
+    """
+    import sys
+    if sys.platform != 'linux':
+        return
+
+    import ctypes
+    pkg_name = __name__
+    pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    site_dir = os.path.dirname(pkg_dir)
+    for libs_name in (f'{pkg_name}.libs', f'.{pkg_name}.libs'):
+        libs_dir = os.path.join(site_dir, libs_name)
+        if not os.path.isdir(libs_dir):
+            continue
+        remaining = [
+            os.path.join(libs_dir, f)
+            for f in sorted(os.listdir(libs_dir))
+            if '.so' in f
+        ]
+        # Multi-pass: keep retrying until no progress (handles dep ordering)
+        while remaining:
+            failed = []
+            for lib_path in remaining:
+                try:
+                    ctypes.CDLL(lib_path, mode=ctypes.RTLD_GLOBAL)
+                except OSError:
+                    failed.append(lib_path)
+            if len(failed) == len(remaining):
+                break  # No progress, stop
+            remaining = failed
 
 
 def _check_openeye_version():
@@ -280,6 +321,9 @@ _ensure_library_compat()
 # Preload OpenEye shared libraries (needed on Linux where RUNPATH may not
 # include the OpenEye library directory after auditwheel repair)
 _preload_shared_libs()
+
+# Preload auditwheel-bundled libraries from .libs directory
+_preload_bundled_libs()
 
 # Check OpenEye version on import
 _check_openeye_version()
