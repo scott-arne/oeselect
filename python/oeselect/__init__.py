@@ -98,8 +98,8 @@ import re
 import warnings
 
 # Version info
-__version__ = "1.1.4"
-__version_info__ = (1, 1, 4)
+__version__ = "1.1.5"
+__version_info__ = (1, 1, 5)
 
 
 def _ensure_library_compat():
