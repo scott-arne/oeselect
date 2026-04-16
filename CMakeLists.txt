@@ -14,7 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Options
 option(OESELECT_BUILD_TESTS "Build tests" ON)
 option(OESELECT_BUILD_PYTHON "Build Python bindings" ON)
-option(OESELECT_UNIVERSAL2 "Build universal2 binary for macOS" ON)
+option(OESELECT_UNIVERSAL2 "Build universal2 binary for macOS" OFF)
 option(OESELECT_USE_STABLE_ABI "Use Python stable ABI" ON)
 
 if(APPLE AND OESELECT_UNIVERSAL2)

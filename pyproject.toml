@@ -44,7 +44,7 @@ OESELECT_BUILD_TESTS = "OFF"
 OESELECT_BUILD_PYTHON = "ON"
 OPENEYE_USE_SHARED = "ON"
 OESELECT_USE_STABLE_ABI = "ON"
-OESELECT_UNIVERSAL2 = "ON"
+OESELECT_UNIVERSAL2 = "OFF"
 
 # =============================================================================
 # TOML-driven build configuration for scripts/build_python.py
