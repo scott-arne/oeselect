@@ -98,8 +98,8 @@ import re
 import warnings
 
 # Version info
-__version__ = "1.1.5"
-__version_info__ = (1, 1, 5)
+__version__ = "1.1.6"
+__version_info__ = (1, 1, 6)
 
 
 def _ensure_library_compat():
@@ -298,9 +298,8 @@ def _check_openeye_version():
         # Get runtime toolkit version using the official API
         runtime_version = oechem.OEToolkitsGetRelease()
         if runtime_version and build_version:
-            # Compare major.minor.patch versions (e.g., "2025.2.1")
-            build_parts = build_version.split('.')[:3]
-            runtime_parts = runtime_version.split('.')[:3]
+            build_parts = build_version.split('.')[:2]
+            runtime_parts = runtime_version.split('.')[:2]
             if build_parts != runtime_parts:
                 warnings.warn(
                     f"OpenEye version mismatch: oeselect was built with OpenEye Toolkits {build_version} "
