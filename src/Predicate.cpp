@@ -25,9 +25,9 @@
 #include "oeselect/Context.h"
 #include "oeselect/Tagger.h"
 #include "oeselect/SpatialIndex.h"
+#include "glob_match.h"
 
 #include <oechem.h>
-#include <fnmatch.h>
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
@@ -53,7 +53,7 @@ bool NamePredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     }
 
     if (has_wildcard_) {
-        return fnmatch(pattern_.c_str(), name.c_str(), 0) == 0;
+        return match_glob(pattern_, name);
     }
     return name == pattern_;
 }
@@ -182,7 +182,7 @@ bool ResnPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
 
     const std::string resn = res.GetName();
     if (has_wildcard_) {
-        return fnmatch(pattern_.c_str(), resn.c_str(), 0) == 0;
+        return match_glob(pattern_, resn);
     }
     return resn == pattern_;
 }
