@@ -259,14 +259,22 @@ def get_openeye_info(python_exe):
     :param python_exe: Path to the Python executable.
     :returns: Dict with VERSION, LIB_DIR, and PLATFORM keys, or None on failure.
     """
+    # FindOpenEyeDLLSDirectory() raises on Windows because the wheel flattens
+    # DLLs into openeye/libs/ with no platform subdirectory. Fall back to the
+    # package directory itself, which is what the .pyd modules load from.
     code = """
+import os, sys
 from openeye import libs, oechem
-import os
-dll_dir = libs.FindOpenEyeDLLSDirectory()
+if sys.platform.startswith('win'):
+    dll_dir = os.path.dirname(libs.__file__)
+    platform_name = 'win-x64'
+else:
+    dll_dir = libs.FindOpenEyeDLLSDirectory()
+    platform_name = os.path.basename(dll_dir)
 version = oechem.OEToolkitsGetRelease()
 print(f'VERSION:{version}')
 print(f'LIB_DIR:{dll_dir}')
-print(f'PLATFORM:{os.path.basename(dll_dir)}')
+print(f'PLATFORM:{platform_name}')
 """
     try:
         result = run_command(
