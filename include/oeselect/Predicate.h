@@ -79,8 +79,8 @@ enum class PredicateType {
     LOOP,   ///< Loop/coil
 
     // Constants
-    TRUE,   ///< Always matches (used for empty/all selections)
-    FALSE   ///< Never matches (used for 'none' keyword)
+    ALL_MATCH,  ///< Always matches (used for 'all' keyword and empty selections)
+    NO_MATCH    ///< Never matches (used for 'none' keyword)
 };
 
 /**

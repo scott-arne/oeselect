@@ -562,8 +562,8 @@ from .oeselect import (
     PredicateType_SHEET,
     PredicateType_TURN,
     PredicateType_LOOP,
-    PredicateType_TRUE,
-    PredicateType_FALSE,
+    PredicateType_ALL_MATCH,
+    PredicateType_NO_MATCH,
 )
 
 # Create a namespace for PredicateType enum
@@ -604,8 +604,8 @@ class PredicateType:
     Sheet = PredicateType_SHEET
     Turn = PredicateType_TURN
     Loop = PredicateType_LOOP
-    True_ = PredicateType_TRUE
-    False_ = PredicateType_FALSE
+    True_ = PredicateType_ALL_MATCH
+    False_ = PredicateType_NO_MATCH
 
 __all__ = [
     "__version__",

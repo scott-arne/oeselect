@@ -430,8 +430,8 @@ PredicateType_HELIX = _oeselect.PredicateType_HELIX
 PredicateType_SHEET = _oeselect.PredicateType_SHEET
 PredicateType_TURN = _oeselect.PredicateType_TURN
 PredicateType_LOOP = _oeselect.PredicateType_LOOP
-PredicateType_TRUE = _oeselect.PredicateType_TRUE
-PredicateType_FALSE = _oeselect.PredicateType_FALSE
+PredicateType_ALL_MATCH = _oeselect.PredicateType_ALL_MATCH
+PredicateType_NO_MATCH = _oeselect.PredicateType_NO_MATCH
 class SelectionError(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
