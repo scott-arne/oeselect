@@ -330,6 +330,11 @@ _preload_bundled_libs()
 # Check OpenEye version on import
 _check_openeye_version()
 
+# Import openeye.libs before loading the SWIG extension so that on Windows its
+# os.add_dll_directory() side effect populates the DLL search path; harmless on
+# POSIX where openeye-toolkits is already a runtime dependency.
+import openeye.libs  # noqa: F401,E402
+
 from .oeselect import (
     OESelection,
     OESelect as _CppOESelect,
@@ -557,8 +562,8 @@ from .oeselect import (
     PredicateType_SHEET,
     PredicateType_TURN,
     PredicateType_LOOP,
-    PredicateType_TRUE,
-    PredicateType_FALSE,
+    PredicateType_ALL_MATCH,
+    PredicateType_NO_MATCH,
 )
 
 # Create a namespace for PredicateType enum
@@ -599,8 +604,8 @@ class PredicateType:
     Sheet = PredicateType_SHEET
     Turn = PredicateType_TURN
     Loop = PredicateType_LOOP
-    True_ = PredicateType_TRUE
-    False_ = PredicateType_FALSE
+    True_ = PredicateType_ALL_MATCH
+    False_ = PredicateType_NO_MATCH
 
 __all__ = [
     "__version__",

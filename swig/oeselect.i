@@ -444,7 +444,7 @@ enum class PredicateType {
     BY_RES, BY_CHAIN,
     AROUND, EXPAND, BEYOND,
     HELIX, SHEET, TURN, LOOP,
-    TRUE, FALSE
+    ALL_MATCH, NO_MATCH
 };
 
 // ============================================================================

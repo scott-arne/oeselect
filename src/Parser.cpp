@@ -359,7 +359,7 @@ class TruePredicateImpl : public Predicate {
 public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return true; }
     [[nodiscard]] std::string ToCanonical() const override { return "all"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::TRUE; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::ALL_MATCH; }
 };
 
 /// Always-false predicate for 'none' keyword
@@ -367,7 +367,7 @@ class FalsePredicateImpl : public Predicate {
 public:
     bool Evaluate(Context&, const OEChem::OEAtomBase&) const override { return false; }
     [[nodiscard]] std::string ToCanonical() const override { return "none"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::FALSE; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::NO_MATCH; }
 };
 
 // ============================================================================

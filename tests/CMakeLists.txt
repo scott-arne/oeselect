@@ -12,7 +12,10 @@ add_executable(oeselect_tests
     cpp/test_main.cpp
     cpp/test_selection.cpp
     cpp/test_spatial_index.cpp
+    cpp/test_glob_match.cpp
 )
+
+target_include_directories(oeselect_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(oeselect_tests
     PRIVATE

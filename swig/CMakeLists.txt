@@ -10,5 +10,6 @@ openeye_add_swig_module(
     EXPECTED_LIB_VARS
         OECHEM_LIBRARY OESYSTEM_LIBRARY OEPLATFORM_LIBRARY
         OEMATH_LIBRARY OEZSTD_LIBRARY
+        OEGRID_LIBRARY
     INIT_PY ${CMAKE_SOURCE_DIR}/python/oeselect/__init__.py
 )

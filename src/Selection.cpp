@@ -22,7 +22,7 @@ public:
         return true;
     }
     [[nodiscard]] std::string ToCanonical() const override { return "all"; }
-    [[nodiscard]] PredicateType Type() const override { return PredicateType::TRUE; }
+    [[nodiscard]] PredicateType Type() const override { return PredicateType::ALL_MATCH; }
 };
 
 /// PIMPL implementation holding the root predicate
@@ -93,7 +93,7 @@ const Predicate& OESelection::Root() const {
 }
 
 bool OESelection::IsEmpty() const {
-    return pimpl_->root->Type() == PredicateType::TRUE;
+    return pimpl_->root->Type() == PredicateType::ALL_MATCH;
 }
 
 }  // namespace OESel
