@@ -102,6 +102,17 @@ target_link_libraries(oeselect
         nanoflann::nanoflann
 )
 
+# OEBio and OEGrid are optional targets -- in shared-library builds (e.g. from
+# openeye-toolkits Python package) these symbols are already in liboechem, so a
+# separate library may not exist. They are required on static Windows builds
+# and for the SWIG wrapper's OEScalarGrid references.
+if(TARGET OpenEye::OEBio)
+    target_link_libraries(oeselect PUBLIC OpenEye::OEBio)
+endif()
+if(TARGET OpenEye::OEGrid)
+    target_link_libraries(oeselect PUBLIC OpenEye::OEGrid)
+endif()
+
 # Tests
 if(OESELECT_BUILD_TESTS)
     enable_testing()
