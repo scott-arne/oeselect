@@ -375,6 +375,48 @@ jobs:
           pip install dist/oeselect-*.whl
           pytest tests/python/ -v -s
 
+      - name: Verify _oeselect.pyd links python3.dll (abi3 gate)
+        # The wheel is tagged cp310-abi3; the .pyd must link python3.dll, not
+        # a versioned python3XX.dll. Without this gate we would silently ship
+        # wheels that load only on the build Python (see 1.3.0 regression).
+        shell: pwsh
+        run: |
+          $wheel = Get-ChildItem dist\oeselect-*.whl | Select-Object -First 1
+          $unpackDir = Join-Path $env:RUNNER_TEMP "wheel-unpack"
+          if (Test-Path $unpackDir) { Remove-Item -Recurse -Force $unpackDir }
+          New-Item -ItemType Directory -Path $unpackDir | Out-Null
+          Expand-Archive -Path $wheel.FullName -DestinationPath $unpackDir
+          $pyd = Get-ChildItem -Path $unpackDir -Recurse -Filter _oeselect*.pyd | Select-Object -First 1
+          if (-not $pyd) { throw "No _oeselect*.pyd found in the wheel" }
+          $deps = dumpbin /dependents "$($pyd.FullName)" | Out-String
+          Write-Host $deps
+          $versioned = [regex]::Matches($deps, '(?im)^\s*python3\d+\.dll\s*$')
+          if ($versioned.Count -gt 0) {
+            throw "abi3 violation: _oeselect.pyd imports versioned Python DLL(s): $($versioned.Value -join ', ')"
+          }
+          if ($deps -notmatch '(?im)^\s*python3\.dll\s*$') {
+            throw "abi3 violation: _oeselect.pyd does not import python3.dll"
+          }
+          Write-Host "OK: _oeselect.pyd imports only python3.dll (stable ABI)"
+
+      - name: Cross-Python-version import test (Python 3.13 on abi3 wheel)
+        # The wheel was built against Python 3.11 but claims abi3 / cp310.
+        # Install it into a Python 3.13 interpreter and make sure it imports.
+        # This catches the 1.3.0-class regression where the .pyd silently
+        # links python3XX.dll and only loads on the build Python.
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install + import wheel under Python 3.13
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "openeye-toolkits==${{ vars.OPENEYE_VERSION }}" \
+            --extra-index-url https://pypi.anaconda.org/openeye/simple \
+            --no-cache-dir
+          python -m pip install dist/oeselect-*.whl
+          python -c "import oeselect; print('Imported oeselect', oeselect.__version__, 'under', __import__('sys').version)"
+
       - name: List built artifacts
         run: |
           ls -la dist/
