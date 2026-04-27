@@ -28,7 +28,7 @@ include(FetchContent)
 FetchContent_Declare(
     cmake_openeye
     GIT_REPOSITORY https://github.com/scott-arne/cmake-openeye.git
-    GIT_TAG v1.1.3
+    GIT_TAG v1.1.4
     GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(cmake_openeye)
@@ -84,9 +84,19 @@ target_include_directories(oeselect
         $<INSTALL_INTERFACE:include>
 )
 
+find_package(ZLIB REQUIRED)
+
+# ZLIB::ZLIB is wrapped in BUILD_INTERFACE because on Windows cmake-openeye
+# aliases it onto the FetchContent-built `zlibstatic` target, which is not
+# in any install export set. install(EXPORT oeselect-targets) would fail
+# at configure time ("requires target zlibstatic that is not in any export
+# set"). In-tree consumers (the SWIG wrapper) still see ZLIB::ZLIB via
+# the build-tree interface; downstream CMake consumers of the installed
+# oeselect-targets must call find_package(ZLIB) themselves.
 target_link_libraries(oeselect
     PUBLIC
         OpenEye::OEChem
+        $<BUILD_INTERFACE:ZLIB::ZLIB>
     PRIVATE
         taocpp::pegtl
         nanoflann::nanoflann

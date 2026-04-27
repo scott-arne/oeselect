@@ -424,6 +424,17 @@ def build_wheel(project_dir, python_exe, openeye_root, openeye_info, config,
         '-C', 'logging.level=INFO',
     ]
 
+    # SWIG is pip-installable but lands in <env>/Scripts on Windows, which
+    # isn't on PATH inside conda envs. Point CMake at it explicitly if found.
+    py_dir = Path(python_exe).parent
+    swig_candidates = [
+        py_dir / 'Scripts' / 'swig.exe',  # Windows
+        py_dir / 'swig',                  # Linux/macOS (bin dir)
+    ]
+    swig_exe = next((p for p in swig_candidates if p.exists()), None)
+    if swig_exe:
+        cmd.extend(['-C', f'cmake.define.SWIG_EXECUTABLE={swig_exe.as_posix()}'])
+
     # Add any extra CMake defines from config
     for key, value in config.get('extra-cmake-defines', {}).items():
         cmd.extend(['-C', f'cmake.define.{key}={value}'])
