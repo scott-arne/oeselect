@@ -1,5 +1,5 @@
 # CMakeLists.txt
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.26)
 
 if(POLICY CMP0144)
     cmake_policy(SET CMP0144 NEW)
@@ -28,7 +28,7 @@ include(FetchContent)
 FetchContent_Declare(
     cmake_openeye
     GIT_REPOSITORY https://github.com/scott-arne/cmake-openeye.git
-    GIT_TAG v1.1.4
+    GIT_TAG v1.1.6
     GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(cmake_openeye)
