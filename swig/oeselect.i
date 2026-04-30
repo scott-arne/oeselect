@@ -428,7 +428,7 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oeselect_is_oereceptor, "E
 // ============================================================================
 #define OESELECT_VERSION_MAJOR 1
 #define OESELECT_VERSION_MINOR 3
-#define OESELECT_VERSION_PATCH 1
+#define OESELECT_VERSION_PATCH 2
 
 // ============================================================================
 // PredicateType enum
