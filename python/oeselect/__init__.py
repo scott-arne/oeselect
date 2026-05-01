@@ -98,8 +98,54 @@ import re
 import warnings
 
 # Version info
-__version__ = "1.3.2"
-__version_info__ = (1, 3, 2)
+__version__ = "1.3.3"
+__version_info__ = (1, 3, 3)
+
+
+def _find_openeye_runtime_lib_dir(expected_libs=()):
+    """Find the OpenEye runtime library directory without importing oechem."""
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    search_locations = []
+    openeye_module = sys.modules.get("openeye")
+    openeye_path = getattr(openeye_module, "__path__", None)
+    if openeye_path is not None:
+        search_locations.extend(openeye_path)
+
+    if not search_locations:
+        try:
+            openeye_spec = importlib.util.find_spec("openeye")
+        except (ImportError, ValueError):
+            openeye_spec = None
+        if (
+            openeye_spec is not None
+            and openeye_spec.submodule_search_locations is not None
+        ):
+            search_locations.extend(openeye_spec.submodule_search_locations)
+
+    expected_libs = set(expected_libs or ())
+    fallback_dir = None
+    for package_root in search_locations:
+        libs_root = Path(package_root) / "libs"
+        if not libs_root.is_dir():
+            continue
+
+        # Importing openeye.libs eagerly imports oechem in some environments.
+        # The runtime libraries are shipped below openeye/libs, so filesystem
+        # discovery preserves the fresh-import condition.
+        for root, _, files in os.walk(libs_root):
+            file_set = set(files)
+            if expected_libs and expected_libs.intersection(file_set):
+                return root
+            if fallback_dir is None and any(
+                ".dylib" in lib_name or ".so" in lib_name or ".dll" in lib_name
+                for lib_name in files
+            ):
+                fallback_dir = root
+
+    return fallback_dir
 
 
 def _ensure_library_compat():
@@ -126,10 +172,8 @@ def _ensure_library_compat():
     if not expected_libs:
         return False
 
-    try:
-        from openeye import libs
-        oe_lib_dir = libs.FindOpenEyeDLLSDirectory()
-    except (ImportError, Exception):
+    oe_lib_dir = _find_openeye_runtime_lib_dir(expected_libs)
+    if oe_lib_dir is None:
         return False
 
     if not os.path.isdir(oe_lib_dir):
@@ -214,10 +258,8 @@ def _preload_shared_libs():
     if not expected_libs:
         return
 
-    try:
-        from openeye import libs
-        oe_lib_dir = libs.FindOpenEyeDLLSDirectory()
-    except (ImportError, Exception):
+    oe_lib_dir = _find_openeye_runtime_lib_dir(expected_libs)
+    if oe_lib_dir is None:
         return
 
     if not os.path.isdir(oe_lib_dir):
@@ -294,26 +336,26 @@ def _check_openeye_version():
         return
 
     try:
-        from openeye import oechem
-        # Get runtime toolkit version using the official API
-        runtime_version = oechem.OEToolkitsGetRelease()
-        if runtime_version and build_version:
-            build_parts = build_version.split('.')[:2]
-            runtime_parts = runtime_version.split('.')[:2]
-            if build_parts != runtime_parts:
-                warnings.warn(
-                    f"OpenEye version mismatch: oeselect was built with OpenEye Toolkits {build_version} "
-                    f"but runtime has OpenEye Toolkits {runtime_version}. "
-                    f"This may cause compatibility issues. Please ensure openeye-toolkits "
-                    f"matches the version used to build oeselect.",
-                    RuntimeWarning
-                )
-    except ImportError:
+        from importlib import metadata
+        runtime_version = metadata.version("openeye-toolkits")
+    except metadata.PackageNotFoundError:
         warnings.warn(
             "openeye-toolkits package not found. "
             "This wheel requires openeye-toolkits to be installed. "
             "Install with: pip install openeye-toolkits",
             ImportWarning
+        )
+        return
+
+    build_parts = build_version.split('.')[:2]
+    runtime_parts = runtime_version.split('.')[:2]
+    if build_parts != runtime_parts:
+        warnings.warn(
+            f"OpenEye version mismatch: oeselect was built with OpenEye Toolkits {build_version} "
+            f"but runtime has OpenEye Toolkits {runtime_version}. "
+            f"This may cause compatibility issues. Please ensure openeye-toolkits "
+            f"matches the version used to build oeselect.",
+            RuntimeWarning
         )
 
 
@@ -329,11 +371,6 @@ _preload_bundled_libs()
 
 # Check OpenEye version on import
 _check_openeye_version()
-
-# Import openeye.libs before loading the SWIG extension so that on Windows its
-# os.add_dll_directory() side effect populates the DLL search path; harmless on
-# POSIX where openeye-toolkits is already a runtime dependency.
-import openeye.libs  # noqa: F401,E402
 
 from .oeselect import (
     OESelection,
@@ -355,15 +392,27 @@ from .oeselect import (
 )
 
 
-try:
-    from openeye import oechem as _oechem
-    _OEUnaryAtomPred = _oechem.OEUnaryAtomPred
-except ImportError:
-    _OEUnaryAtomPred = object
-    _oechem = None
+def _get_openeye_atom_predicate_base():
+    """Load the OpenEye atom predicate base only when a predicate is instantiated."""
+    from openeye import oechem
+
+    return oechem.OEUnaryAtomPred
 
 
-class OESelect(_OEUnaryAtomPred):
+def _get_lazy_openeye_predicate_type(public_cls):
+    """Create the OpenEye-backed subclass for a public predicate wrapper."""
+    predicate_cls = getattr(public_cls, "_openeye_predicate_type", None)
+    if predicate_cls is None:
+        predicate_cls = type(
+            public_cls.__name__,
+            (public_cls, _get_openeye_atom_predicate_base()),
+            {"__module__": public_cls.__module__},
+        )
+        public_cls._openeye_predicate_type = predicate_cls
+    return predicate_cls
+
+
+class OESelect:
     """Molecule-bound selection predicate compatible with OpenEye's predicate interface.
 
     Wraps the C++ OESelect evaluator and implements the OpenEye OEUnaryAtomPred
@@ -390,8 +439,16 @@ class OESelect(_OEUnaryAtomPred):
         num = oechem.OECount(mol, pred)
     """
 
+    _openeye_predicate_type = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls is OESelect:
+            predicate_cls = _get_lazy_openeye_predicate_type(cls)
+            return predicate_cls.__new__(predicate_cls)
+        return super().__new__(cls)
+
     def __init__(self, mol, sele=None):
-        _OEUnaryAtomPred.__init__(self)
+        _get_openeye_atom_predicate_base().__init__(self)
         self._mol = mol
         if sele is None:
             self._cpp_select = _CppOESelect(mol, "all")
@@ -431,7 +488,7 @@ class OESelect(_OEUnaryAtomPred):
         return f"OESelect('{self._cpp_select.GetSelection().ToCanonical()}')"
 
 
-class OEResidueSelector(_OEUnaryAtomPred):
+class OEResidueSelector:
     """Predicate matching atoms by residue selector strings.
 
     Compatible with OpenEye's predicate interface for use with
@@ -447,8 +504,16 @@ class OEResidueSelector(_OEUnaryAtomPred):
             print(atom.GetName())
     """
 
+    _openeye_predicate_type = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls is OEResidueSelector:
+            predicate_cls = _get_lazy_openeye_predicate_type(cls)
+            return predicate_cls.__new__(predicate_cls)
+        return super().__new__(cls)
+
     def __init__(self, selector_str):
-        _OEUnaryAtomPred.__init__(self)
+        _get_openeye_atom_predicate_base().__init__(self)
         if isinstance(selector_str, str):
             self._cpp_selector = _CppOEResidueSelector(selector_str)
         else:
@@ -465,12 +530,12 @@ class OEResidueSelector(_OEUnaryAtomPred):
     def CreateCopy(self):
         """Create a copy for OpenEye compatibility."""
         copy = OEResidueSelector.__new__(OEResidueSelector)
-        _OEUnaryAtomPred.__init__(copy)
+        _get_openeye_atom_predicate_base().__init__(copy)
         copy._cpp_selector = _CppOEResidueSelector(self._cpp_selector)
         return copy.__disown__()
 
 
-class OEHasResidueName(_OEUnaryAtomPred):
+class OEHasResidueName:
     """Match atoms by residue name with optional case/whitespace control.
 
     :param residue_name: The residue name to match.
@@ -482,9 +547,17 @@ class OEHasResidueName(_OEUnaryAtomPred):
         pred = OEHasResidueName("ala")  # Matches "ALA", " ALA", etc.
     """
 
+    _openeye_predicate_type = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls is OEHasResidueName:
+            predicate_cls = _get_lazy_openeye_predicate_type(cls)
+            return predicate_cls.__new__(predicate_cls)
+        return super().__new__(cls)
+
     def __init__(self, residue_name: str, case_sensitive: bool = False,
                  whitespace: bool = False):
-        _OEUnaryAtomPred.__init__(self)
+        _get_openeye_atom_predicate_base().__init__(self)
         self._cpp_pred = _CppOEHasResidueName(residue_name, case_sensitive, whitespace)
         self._residue_name = residue_name
         self._case_sensitive = case_sensitive
@@ -498,7 +571,7 @@ class OEHasResidueName(_OEUnaryAtomPred):
         return copy.__disown__()
 
 
-class OEHasAtomNameAdvanced(_OEUnaryAtomPred):
+class OEHasAtomNameAdvanced:
     """Match atoms by name with optional case/whitespace control.
 
     :param atom_name: The atom name to match.
@@ -510,9 +583,17 @@ class OEHasAtomNameAdvanced(_OEUnaryAtomPred):
         pred = OEHasAtomNameAdvanced("ca")  # Matches "CA", " CA", etc.
     """
 
+    _openeye_predicate_type = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls is OEHasAtomNameAdvanced:
+            predicate_cls = _get_lazy_openeye_predicate_type(cls)
+            return predicate_cls.__new__(predicate_cls)
+        return super().__new__(cls)
+
     def __init__(self, atom_name: str, case_sensitive: bool = False,
                  whitespace: bool = False):
-        _OEUnaryAtomPred.__init__(self)
+        _get_openeye_atom_predicate_base().__init__(self)
         self._cpp_pred = _CppOEHasAtomNameAdvanced(atom_name, case_sensitive, whitespace)
         self._atom_name = atom_name
         self._case_sensitive = case_sensitive
