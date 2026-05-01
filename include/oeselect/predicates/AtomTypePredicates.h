@@ -52,10 +52,10 @@ public:
 };
 
 /**
- * @brief Matches nonpolar hydrogens (not bonded to N, O, or S).
+ * @brief Matches nonpolar hydrogens (bonded to carbon).
  *
- * Typically hydrogens bonded to carbon. More precisely, any hydrogen
- * that is not bonded to N, O, or S is considered nonpolar.
+ * Nonpolar hydrogens are hydrogens directly bonded to carbon. Isolated
+ * hydrogens or hydrogens bonded to heteroatoms are not considered nonpolar.
  */
 class NonpolarHydrogenPredicate : public Predicate {
 public:

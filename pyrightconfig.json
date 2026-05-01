@@ -1,0 +1,19 @@
+{
+  "include": [
+    "python"
+  ],
+  "ignore": [
+    "examples"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "build",
+    "dist",
+    "examples",
+    "htmlcov",
+    "oeselect.egg-info",
+    "tests",
+  ]
+}

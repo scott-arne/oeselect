@@ -73,7 +73,7 @@ struct Selector {
      */
     [[nodiscard]] std::string ToString() const;
 
-    /// @brief Comparison by (chain, residue_number, insert_code).
+    /// @brief Comparison by (chain, residue_number, insert_code, name).
     bool operator<(const Selector& other) const;
     bool operator>(const Selector& other) const;
     bool operator<=(const Selector& other) const;

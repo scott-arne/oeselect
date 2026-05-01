@@ -101,12 +101,12 @@ instance, which maintains a per-molecule evaluation context with lazy-initialize
 
 ### Atom Types
 
-| Keyword                         | Description                            |
-|---------------------------------|----------------------------------------|
-| `heavy`                         | Non-hydrogen atoms (atomic number > 1) |
-| `hydrogen` / `h`                | All hydrogen atoms                     |
-| `polar_hydrogen` / `polarh`     | Hydrogens bonded to N, O, or S         |
-| `nonpolar_hydrogen` / `apolarh` | Hydrogens bonded to C                  |
+| Keyword                                       | Description                            |
+|-----------------------------------------------|----------------------------------------|
+| `heavy`                                       | Non-hydrogen atoms (atomic number > 1) |
+| `hydrogen` / `h`                              | All hydrogen atoms                     |
+| `polar_hydrogen` / `polar_hydrogens` / `polarh` | Hydrogens bonded to N, O, or S         |
+| `nonpolar_hydrogen` / `nonpolar_hydrogens` / `apolarh` | Hydrogens bonded to C                  |
 
 ### Secondary Structure
 

@@ -7,6 +7,16 @@ These tests require the OpenEye Toolkits Python package to be installed.
 import pytest
 
 
+def test_generated_module_version_matches_package():
+    """Generated SWIG module version should not drift from package metadata."""
+    import importlib
+
+    import oeselect
+
+    generated = importlib.import_module("oeselect.oeselect")
+    assert generated.__version__ == oeselect.__version__
+
+
 @pytest.fixture
 def simple_mol():
     """Create a simple molecule (aspirin) for testing."""
@@ -416,6 +426,15 @@ class TestSelector:
         with pytest.raises(ValueError):
             Selector.FromString("invalid")
 
+    def test_selector_invalid_residue_number(self):
+        """Residue selector numbers should be fully validated."""
+        from oeselect import Selector
+
+        with pytest.raises(ValueError):
+            Selector.FromString("ALA:12A: :A")
+        with pytest.raises(ValueError):
+            Selector.FromString("ALA:9999999999999999999999999: :A")
+
 
 class TestOEResidueSelector:
     """Tests for OEResidueSelector predicate."""
@@ -435,6 +454,29 @@ class TestOEResidueSelector:
         sel = OEResidueSelector("ALA:1: :A,GLY:2: :A")
         atoms = list(protein_mol.GetAtoms(sel))
         assert len(atoms) == protein_mol.NumAtoms()
+
+    def test_residue_selector_distinguishes_residue_name(self):
+        """Selectors at the same position should still respect residue name."""
+        from openeye import oechem
+
+        from oeselect import OEResidueSelector
+
+        mol = oechem.OEGraphMol()
+        ala = mol.NewAtom(6)
+        gly = mol.NewAtom(6)
+
+        for atom, name in [(ala, "ALA"), (gly, "GLY")]:
+            res = oechem.OEResidue()
+            res.SetName(name)
+            res.SetResidueNumber(1)
+            res.SetChainID("A")
+            res.SetInsertCode(" ")
+            oechem.OEAtomSetResidue(atom, res)
+
+        sel = OEResidueSelector("ALA:1: :A")
+        atoms = list(mol.GetAtoms(sel))
+
+        assert atoms == [ala]
 
 
 class TestCustomPredicates:

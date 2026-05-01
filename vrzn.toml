@@ -27,3 +27,15 @@ prefix = "OESELECT"
 file = "swig/oeselect.i"
 type = "c-define"
 prefix = "OESELECT"
+
+[[locations]]
+file = "swig/oeselect.i"
+type = "custom"
+template = '__version__ = "{version}"'
+label = "swig-python-version"
+
+[[locations]]
+file = "docs/conf.py"
+type = "custom"
+template = "release = '{version}'"
+label = "docs-release"

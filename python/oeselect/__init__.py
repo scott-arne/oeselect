@@ -57,8 +57,8 @@ Component types:
 Atom types:
     - heavy: Non-hydrogen atoms
     - hydrogen / h: Hydrogen atoms
-    - polar_hydrogen / polarh: Polar hydrogens
-    - nonpolar_hydrogen / apolarh: Non-polar hydrogens
+    - polar_hydrogen / polar_hydrogens / polarh: Polar hydrogens
+    - nonpolar_hydrogen / nonpolar_hydrogens / apolarh: Hydrogens bonded to carbon
 
 Secondary structure:
     - helix: Alpha helix atoms
@@ -98,8 +98,8 @@ import re
 import warnings
 
 # Version info
-__version__ = "1.3.3"
-__version_info__ = (1, 3, 3)
+__version__ = "1.3.4"
+__version_info__ = (1, 3, 4)
 
 
 def _find_openeye_runtime_lib_dir(expected_libs=()):
@@ -703,6 +703,7 @@ __all__ = [
     "select",
     "count",
     "parse",
+    "parse_selector_set",
     "str_selector_set",
     "selector_set",
     "mol_to_selector_set",

@@ -201,6 +201,14 @@ TEST_F(SelectionTest, ParenthesesGrouping) {
     EXPECT_EQ(count, 2);  // X1 and Y1
 }
 
+TEST_F(SelectionTest, OutOfRangeNumbersRaiseSelectionError) {
+    EXPECT_THROW(OESelection::Parse("resi 9999999999999999999999999"), SelectionError);
+    EXPECT_THROW(OESelection::Parse("index 9999999999999999999999999"), SelectionError);
+    EXPECT_THROW(
+        OESelection::Parse("name CA around 999999999999999999999999999999999999999999999999999999999"),
+        SelectionError);
+}
+
 TEST_F(SelectionTest, NestedLogicalOperators) {
     // Set up atom names
     int idx = 1;
@@ -1414,6 +1422,26 @@ TEST(ComponentPredicateTest, BackbonePredicate) {
     EXPECT_EQ(count, 4);
 }
 
+TEST(ComponentPredicateTest, BackbonePredicateTrimsPaddedAtomNames) {
+    OEChem::OEGraphMol mol;
+    auto* ca = mol.NewAtom(6);
+    auto* cb = mol.NewAtom(6);
+
+    ca->SetName(" CA ");
+    cb->SetName(" CB ");
+
+    OEChem::OEResidue res;
+    res.SetName("ALA");
+    res.SetResidueNumber(1);
+    OEChem::OEAtomSetResidue(ca, res);
+    OEChem::OEAtomSetResidue(cb, res);
+
+    OESelect sel(mol, "backbone");
+
+    EXPECT_TRUE(sel(*ca));
+    EXPECT_FALSE(sel(*cb));
+}
+
 TEST(ComponentPredicateTest, BackbonePredicateAlias) {
     OEChem::OEGraphMol mol;
     OEChem::OESmilesToMol(mol, "CC(N)C(=O)O");
@@ -1473,6 +1501,26 @@ TEST(ComponentPredicateTest, SidechainPredicate) {
     }
     // Should match CB (1 sidechain atom)
     EXPECT_EQ(count, 1);
+}
+
+TEST(ComponentPredicateTest, SidechainPredicateTrimsPaddedAtomNames) {
+    OEChem::OEGraphMol mol;
+    auto* ca = mol.NewAtom(6);
+    auto* cb = mol.NewAtom(6);
+
+    ca->SetName(" CA ");
+    cb->SetName(" CB ");
+
+    OEChem::OEResidue res;
+    res.SetName("ALA");
+    res.SetResidueNumber(1);
+    OEChem::OEAtomSetResidue(ca, res);
+    OEChem::OEAtomSetResidue(cb, res);
+
+    OESelect sel(mol, "sidechain");
+
+    EXPECT_FALSE(sel(*ca));
+    EXPECT_TRUE(sel(*cb));
 }
 
 TEST(ComponentPredicateTest, SidechainPredicateAlias) {
@@ -1742,6 +1790,19 @@ TEST(AtomTypePredicateTest, PolarHydrogenAlias) {
     EXPECT_EQ(count, 2);
 }
 
+TEST(AtomTypePredicateTest, PolarHydrogensAlias) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "O");  // Water
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "polar_hydrogens");
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 2);
+}
+
 TEST(AtomTypePredicateTest, NonpolarHydrogenPredicate) {
     OEChem::OEGraphMol mol;
     OEChem::OESmilesToMol(mol, "C");  // Methane
@@ -1755,12 +1816,38 @@ TEST(AtomTypePredicateTest, NonpolarHydrogenPredicate) {
     EXPECT_EQ(count, 4);  // All 4 H's bonded to C
 }
 
+TEST(AtomTypePredicateTest, NonpolarHydrogenRequiresCarbonNeighbor) {
+    OEChem::OEGraphMol mol;
+    mol.NewAtom(1);
+
+    OESelect sel(mol, "nonpolar_hydrogen");
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 0);
+}
+
 TEST(AtomTypePredicateTest, NonpolarHydrogenAlias) {
     OEChem::OEGraphMol mol;
     OEChem::OESmilesToMol(mol, "C");  // Methane
     OEChem::OEAddExplicitHydrogens(mol);
 
     OESelect sel(mol, "apolarh");  // Short alias
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
+        if (sel(*atom)) count++;
+    }
+    EXPECT_EQ(count, 4);
+}
+
+TEST(AtomTypePredicateTest, NonpolarHydrogensAlias) {
+    OEChem::OEGraphMol mol;
+    OEChem::OESmilesToMol(mol, "C");  // Methane
+    OEChem::OEAddExplicitHydrogens(mol);
+
+    OESelect sel(mol, "nonpolar_hydrogens");
     int count = 0;
     for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol.GetAtoms(); atom; ++atom) {
         if (sel(*atom)) count++;
@@ -2068,6 +2155,12 @@ TEST_F(DistancePredicateTest, AroundFloatingPoint) {
     }
     // NEAR (1.5) is within 1.6, REF is excluded as reference
     EXPECT_EQ(count, 1);
+}
+
+TEST_F(DistancePredicateTest, NegativeRadiiRaiseSelectionError) {
+    EXPECT_THROW(OESelection::Parse("name REF around -1"), SelectionError);
+    EXPECT_THROW(OESelection::Parse("name REF expand -1"), SelectionError);
+    EXPECT_THROW(OESelection::Parse("name REF beyond -1"), SelectionError);
 }
 
 TEST_F(DistancePredicateTest, AroundExactBoundary) {

@@ -29,7 +29,7 @@ class AroundPredicate : public Predicate {
 public:
     /**
      * @brief Construct around predicate.
-     * @param radius Distance threshold in Angstroms.
+     * @param radius Non-negative distance threshold in Angstroms.
      * @param reference Reference selection for distance calculation.
      */
     AroundPredicate(float radius, Ptr reference);
@@ -63,7 +63,7 @@ class ExpandPredicate : public Predicate {
 public:
     /**
      * @brief Construct expand predicate.
-     * @param radius Distance threshold in Angstroms.
+     * @param radius Non-negative distance threshold in Angstroms.
      * @param reference Reference selection for distance calculation.
      */
     ExpandPredicate(float radius, Ptr reference);
@@ -97,7 +97,7 @@ class BeyondPredicate : public Predicate {
 public:
     /**
      * @brief Construct beyond predicate.
-     * @param radius Distance threshold in Angstroms.
+     * @param radius Non-negative distance threshold in Angstroms.
      * @param reference Reference selection for distance calculation.
      */
     BeyondPredicate(float radius, Ptr reference);

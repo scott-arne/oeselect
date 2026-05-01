@@ -8,6 +8,7 @@
 #include "oeselect/Selection.h"
 #include "oeselect/Selector.h"
 
+#include <limits>
 #include <regex>
 #include <sstream>
 #include <tuple>
@@ -15,6 +16,25 @@
 #include <oechem.h>
 
 namespace OESel {
+
+namespace {
+int parse_selector_residue_number(const std::string& token) {
+    try {
+        size_t consumed = 0;
+        const long long value = std::stoll(token, &consumed);
+        if (consumed != token.size() ||
+            value < std::numeric_limits<int>::min() ||
+            value > std::numeric_limits<int>::max()) {
+            throw SelectionError("Invalid residue number in selector: " + token);
+        }
+        return static_cast<int>(value);
+    } catch (const SelectionError&) {
+        throw;
+    } catch (const std::exception&) {
+        throw SelectionError("Invalid residue number in selector: " + token);
+    }
+}
+}  // namespace
 
 // ============================================================================
 // Selector
@@ -60,13 +80,7 @@ Selector Selector::FromString(const std::string& selector_str) {
         }
     }
 
-    int residue_number;
-    try {
-        residue_number = std::stoi(parts[1]);
-    } catch (const std::exception&) {
-        throw SelectionError("Invalid residue number in selector: " + parts[1]);
-    }
-
+    const int residue_number = parse_selector_residue_number(parts[1]);
     return {parts[0], residue_number, parts[3], parts[2]};
 }
 
@@ -76,8 +90,8 @@ std::string Selector::ToString() const {
 }
 
 bool Selector::operator<(const Selector& other) const {
-    return std::tie(chain, residue_number, insert_code) <
-           std::tie(other.chain, other.residue_number, other.insert_code);
+    return std::tie(chain, residue_number, insert_code, name) <
+           std::tie(other.chain, other.residue_number, other.insert_code, other.name);
 }
 
 bool Selector::operator>(const Selector& other) const {

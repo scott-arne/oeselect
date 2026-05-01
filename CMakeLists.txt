@@ -5,7 +5,7 @@ if(POLICY CMP0144)
     cmake_policy(SET CMP0144 NEW)
 endif()
 
-project(oeselect VERSION 1.3.3 LANGUAGES CXX)
+project(oeselect VERSION 1.3.4 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,7 +19,12 @@ option(OESELECT_USE_STABLE_ABI "Use Python stable ABI" ON)
 
 if(APPLE AND OESELECT_UNIVERSAL2)
     set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures" FORCE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version" FORCE)
+elseif(APPLE)
+    unset(CMAKE_OSX_ARCHITECTURES CACHE)
+endif()
+
+if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
 endif()
 
 # Dependencies

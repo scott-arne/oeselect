@@ -19,7 +19,10 @@
 #include "oeselect/predicates/SecondaryStructurePredicates.h"
 
 #include <tao/pegtl.hpp>
+#include <cmath>
+#include <limits>
 #include <stack>
+#include <stdexcept>
 
 namespace pegtl = tao::pegtl;
 
@@ -80,15 +83,20 @@ struct kw_capping : pegtl::sor<TAO_PEGTL_ISTRING("capping"), TAO_PEGTL_ISTRING("
 
 // Atom type keywords (order matters for disambiguation)
 struct kw_heavy : TAO_PEGTL_ISTRING("heavy") {};
-struct kw_polar_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("polar_hydrogen"), TAO_PEGTL_ISTRING("polarh")> {};
-struct kw_nonpolar_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("nonpolar_hydrogen"), TAO_PEGTL_ISTRING("apolarh")> {};
+struct kw_polar_hydrogen : pegtl::sor<
+    TAO_PEGTL_ISTRING("polar_hydrogens"),
+    TAO_PEGTL_ISTRING("polar_hydrogen"),
+    TAO_PEGTL_ISTRING("polarh")> {};
+struct kw_nonpolar_hydrogen : pegtl::sor<
+    TAO_PEGTL_ISTRING("nonpolar_hydrogens"),
+    TAO_PEGTL_ISTRING("nonpolar_hydrogen"),
+    TAO_PEGTL_ISTRING("apolarh")> {};
 struct kw_hydrogen : pegtl::sor<TAO_PEGTL_ISTRING("hydrogen"), TAO_PEGTL_ISTRING("h")> {};
 
 // Numeric patterns
 struct number : pegtl::plus<pegtl::digit> {};
 struct range : pegtl::seq<number, pegtl::one<'-'>, number> {};
 struct float_num : pegtl::seq<
-    pegtl::opt<pegtl::one<'-'>>,
     pegtl::plus<pegtl::digit>,
     pegtl::opt<pegtl::seq<pegtl::one<'.'>, pegtl::star<pegtl::digit>>>
 > {};
@@ -370,6 +378,38 @@ public:
     [[nodiscard]] PredicateType Type() const override { return PredicateType::NO_MATCH; }
 };
 
+int parse_int_token(const std::string& token) {
+    try {
+        size_t consumed = 0;
+        const long long value = std::stoll(token, &consumed);
+        if (consumed != token.size() ||
+            value < std::numeric_limits<int>::min() ||
+            value > std::numeric_limits<int>::max()) {
+            throw SelectionError("Invalid integer value: " + token);
+        }
+        return static_cast<int>(value);
+    } catch (const SelectionError&) {
+        throw;
+    } catch (const std::exception&) {
+        throw SelectionError("Invalid integer value: " + token);
+    }
+}
+
+float parse_float_token(const std::string& token) {
+    try {
+        size_t consumed = 0;
+        const float value = std::stof(token, &consumed);
+        if (consumed != token.size() || !std::isfinite(value)) {
+            throw SelectionError("Invalid numeric value: " + token);
+        }
+        return value;
+    } catch (const SelectionError&) {
+        throw;
+    } catch (const std::exception&) {
+        throw SelectionError("Invalid numeric value: " + token);
+    }
+}
+
 // ============================================================================
 // Parser Actions
 // ============================================================================
@@ -451,7 +491,7 @@ struct Action<Grammar::number> {
     template<typename ActionInput>
     static void apply(const ActionInput& in, ParserState& state) {
         state.second_number = state.first_number;
-        state.first_number = std::stoi(in.string());
+        state.first_number = parse_int_token(in.string());
     }
 };
 
@@ -880,7 +920,7 @@ struct Action<Grammar::macro_resi> {
     template<typename ActionInput>
     static void apply(const ActionInput& in, ParserState& state) {
         if (std::string s = in.string(); !s.empty()) {
-            state.macro_resi = std::stoi(s);
+            state.macro_resi = parse_int_token(s);
         }
     }
 };
@@ -926,7 +966,7 @@ struct Action<Grammar::prop_float> {
     template<typename ActionInput>
     static void apply(const ActionInput& in, ParserState& state) {
         state.second_float = state.first_float;
-        state.first_float = std::stof(in.string());
+        state.first_float = parse_float_token(in.string());
     }
 };
 
@@ -935,7 +975,7 @@ template<>
 struct Action<Grammar::float_num> {
     template<typename ActionInput>
     static void apply(const ActionInput& in, ParserState& state) {
-        state.current_radius = std::stof(in.string());
+        state.current_radius = parse_float_token(in.string());
     }
 };
 

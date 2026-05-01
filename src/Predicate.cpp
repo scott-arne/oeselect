@@ -14,6 +14,7 @@
  */
 
 #include "oeselect/Predicate.h"
+#include "oeselect/Error.h"
 #include "oeselect/predicates/NamePredicate.h"
 #include "oeselect/predicates/LogicalPredicates.h"
 #include "oeselect/predicates/AtomPropertyPredicates.h"
@@ -29,11 +30,33 @@
 
 #include <oechem.h>
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <sstream>
 #include <string>
 
 namespace OESel {
+
+namespace {
+std::string trim_ascii_spaces(std::string value) {
+    const auto start = value.find_first_not_of(' ');
+    if (start == std::string::npos) {
+        return "";
+    }
+    const auto end = value.find_last_not_of(' ');
+    return value.substr(start, end - start + 1);
+}
+
+bool is_backbone_atom_name(const std::string& name) {
+    return name == "N" || name == "CA" || name == "C" || name == "O";
+}
+
+void validate_distance_radius(const float radius) {
+    if (!std::isfinite(radius) || radius < 0.0f) {
+        throw SelectionError("Distance radius must be non-negative and finite");
+    }
+}
+}  // namespace
 
 // NamePredicate implementation
 
@@ -43,14 +66,7 @@ NamePredicate::NamePredicate(std::string pattern)
                     pattern_.find('?') != std::string::npos) {}
 
 bool NamePredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
-    std::string name = atom.GetName();
-
-    // PDB/CIF atom names are padded with spaces (e.g. " CA "); strip for matching
-    auto start = name.find_first_not_of(' ');
-    auto end = name.find_last_not_of(' ');
-    if (start != std::string::npos) {
-        name = name.substr(start, end - start + 1);
-    }
+    std::string name = trim_ascii_spaces(atom.GetName());
 
     if (has_wildcard_) {
         return match_glob(pattern_, name);
@@ -494,8 +510,7 @@ bool BackbonePredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) c
     Tagger::TagMolecule(ctx.Mol());
     if (!Tagger::HasComponent(atom, ComponentFlag::PROTEIN)) return false;
 
-    const std::string name = atom.GetName();
-    return name == "N" || name == "CA" || name == "C" || name == "O";
+    return is_backbone_atom_name(trim_ascii_spaces(atom.GetName()));
 }
 
 // SidechainPredicate implementation - protein atoms that are not backbone
@@ -504,9 +519,9 @@ bool SidechainPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) 
     Tagger::TagMolecule(ctx.Mol());
     if (!Tagger::HasComponent(atom, ComponentFlag::PROTEIN)) return false;
 
-    const std::string name = atom.GetName();
+    const std::string name = trim_ascii_spaces(atom.GetName());
     // Exclude backbone atoms
-    if (name == "N" || name == "CA" || name == "C" || name == "O") return false;
+    if (is_backbone_atom_name(name)) return false;
     // Also exclude OXT (terminal oxygen)
     if (name == "OXT") return false;
     return true;
@@ -562,21 +577,18 @@ bool PolarHydrogenPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) 
     return false;
 }
 
-// NonpolarHydrogenPredicate implementation - H bonded to C (or not N/O/S)
+// NonpolarHydrogenPredicate implementation - H bonded to carbon
 
 bool NonpolarHydrogenPredicate::Evaluate(Context&, const OEChem::OEAtomBase& atom) const {
     if (atom.GetAtomicNum() != 1) return false;  // Must be hydrogen
 
-    // Check what this hydrogen is bonded to
     for (OESystem::OEIter bond = atom.GetBonds(); bond; ++bond) {
         const OEChem::OEAtomBase* nbr = bond->GetNbr(&atom);
-        // If bonded to N, O, or S, it's polar
-        if (const auto nbr_atomic_num = static_cast<int>(nbr->GetAtomicNum());
-            nbr_atomic_num == 7 || nbr_atomic_num == 8 || nbr_atomic_num == 16) {
-            return false;
+        if (static_cast<int>(nbr->GetAtomicNum()) == 6) {
+            return true;
         }
     }
-    return true;  // Not bonded to N/O/S, so it's nonpolar
+    return false;
 }
 
 // ============================================================================
@@ -600,32 +612,27 @@ std::string format_radius(const float radius) {
     }
     return result;
 }
-}  // namespace
 
-// AroundPredicate implementation (excludes reference atoms)
+std::string distance_cache_key(const float radius, const Predicate& reference) {
+    return "around_" + format_radius(radius) + "_" + reference.ToCanonical();
+}
 
-AroundPredicate::AroundPredicate(const float radius, Ptr reference)
-    : radius_(radius), reference_(std::move(reference)) {}
-
-const std::vector<bool>& AroundPredicate::GetAroundMask(Context& ctx) const {
-    const std::string cache_key = "around_" + format_radius(radius_) + "_" + reference_->ToCanonical();
-
+const std::vector<bool>& get_distance_mask(
+    Context& ctx,
+    const float radius,
+    const Predicate& reference) {
+    const std::string cache_key = distance_cache_key(radius, reference);
     if (ctx.HasAroundCache(cache_key)) {
         return ctx.GetAroundCache(cache_key);
     }
 
     const OEChem::OEMolBase& mol = ctx.Mol();
-    const size_t num_atoms = mol.NumAtoms();
-    std::vector mask(num_atoms, false);
-
-    // Get spatial index
+    std::vector mask(mol.NumAtoms(), false);
     const SpatialIndex& index = ctx.GetSpatialIndex();
 
-    // Find all reference atoms and collect nearby atoms
     for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
-        if (reference_->Evaluate(ctx, *atom)) {
-            // This is a reference atom - find all atoms within radius
-            const auto nearby = index.FindWithinRadius(*atom, radius_);
+        if (reference.Evaluate(ctx, *atom)) {
+            const auto nearby = index.FindWithinRadius(*atom, radius);
             for (const unsigned int idx : nearby) {
                 if (idx < mask.size()) {
                     mask[idx] = true;
@@ -636,6 +643,18 @@ const std::vector<bool>& AroundPredicate::GetAroundMask(Context& ctx) const {
 
     ctx.SetAroundCache(cache_key, std::move(mask));
     return ctx.GetAroundCache(cache_key);
+}
+}  // namespace
+
+// AroundPredicate implementation (excludes reference atoms)
+
+AroundPredicate::AroundPredicate(const float radius, Ptr reference)
+    : radius_(radius), reference_(std::move(reference)) {
+    validate_distance_radius(radius_);
+}
+
+const std::vector<bool>& AroundPredicate::GetAroundMask(Context& ctx) const {
+    return get_distance_mask(ctx, radius_, *reference_);
 }
 
 bool AroundPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
@@ -656,38 +675,12 @@ std::string AroundPredicate::ToCanonical() const {
 // ExpandPredicate implementation (includes reference atoms)
 
 ExpandPredicate::ExpandPredicate(const float radius, Ptr reference)
-    : radius_(radius), reference_(std::move(reference)) {}
+    : radius_(radius), reference_(std::move(reference)) {
+    validate_distance_radius(radius_);
+}
 
 const std::vector<bool>& ExpandPredicate::GetAroundMask(Context& ctx) const {
-    // Use same cache key format as AroundPredicate since it's the same computation
-    const std::string cache_key = "around_" + format_radius(radius_) + "_" + reference_->ToCanonical();
-
-    if (ctx.HasAroundCache(cache_key)) {
-        return ctx.GetAroundCache(cache_key);
-    }
-
-    const OEChem::OEMolBase& mol = ctx.Mol();
-    const size_t num_atoms = mol.NumAtoms();
-    std::vector mask(num_atoms, false);
-
-    // Get spatial index
-    const SpatialIndex& index = ctx.GetSpatialIndex();
-
-    // Find all reference atoms and collect nearby atoms
-    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
-        if (reference_->Evaluate(ctx, *atom)) {
-            // This is a reference atom - find all atoms within radius
-            const auto nearby = index.FindWithinRadius(*atom, radius_);
-            for (const unsigned int idx : nearby) {
-                if (idx < mask.size()) {
-                    mask[idx] = true;
-                }
-            }
-        }
-    }
-
-    ctx.SetAroundCache(cache_key, std::move(mask));
-    return ctx.GetAroundCache(cache_key);
+    return get_distance_mask(ctx, radius_, *reference_);
 }
 
 bool ExpandPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {
@@ -703,38 +696,12 @@ std::string ExpandPredicate::ToCanonical() const {
 // BeyondPredicate implementation
 
 BeyondPredicate::BeyondPredicate(const float radius, Ptr reference)
-    : radius_(radius), reference_(std::move(reference)) {}
+    : radius_(radius), reference_(std::move(reference)) {
+    validate_distance_radius(radius_);
+}
 
 const std::vector<bool>& BeyondPredicate::GetAroundMask(Context& ctx) const {
-    // Use the same cache as around - we just interpret it differently
-    const std::string cache_key = "around_" + format_radius(radius_) + "_" + reference_->ToCanonical();
-
-    if (ctx.HasAroundCache(cache_key)) {
-        return ctx.GetAroundCache(cache_key);
-    }
-
-    const OEChem::OEMolBase& mol = ctx.Mol();
-    const size_t num_atoms = mol.NumAtoms();
-    std::vector mask(num_atoms, false);
-
-    // Get spatial index
-    const SpatialIndex& index = ctx.GetSpatialIndex();
-
-    // Find all reference atoms and collect nearby atoms
-    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
-        if (reference_->Evaluate(ctx, *atom)) {
-            // This is a reference atom - find all atoms within radius
-            const auto nearby = index.FindWithinRadius(*atom, radius_);
-            for (const unsigned int idx : nearby) {
-                if (idx < mask.size()) {
-                    mask[idx] = true;
-                }
-            }
-        }
-    }
-
-    ctx.SetAroundCache(cache_key, std::move(mask));
-    return ctx.GetAroundCache(cache_key);
+    return get_distance_mask(ctx, radius_, *reference_);
 }
 
 bool BeyondPredicate::Evaluate(Context& ctx, const OEChem::OEAtomBase& atom) const {

@@ -29,8 +29,8 @@
  * @subsection atomtype Atom Type Keywords
  * - `heavy` - Non-hydrogen atoms
  * - `hydrogen` / `h` - Hydrogen atoms
- * - `polar_hydrogen` / `polarh` - Hydrogens bonded to N, O, or S
- * - `nonpolar_hydrogen` / `apolarh` - Hydrogens bonded to C
+ * - `polar_hydrogen` / `polar_hydrogens` / `polarh` - Hydrogens bonded to N, O, or S
+ * - `nonpolar_hydrogen` / `nonpolar_hydrogens` / `apolarh` - Hydrogens bonded to C
  *
  * @subsection secstruct Secondary Structure
  * - `helix` - Alpha helix residues
