@@ -428,7 +428,7 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oeselect_is_oereceptor, "E
 // ============================================================================
 #define OESELECT_VERSION_MAJOR 1
 #define OESELECT_VERSION_MINOR 3
-#define OESELECT_VERSION_PATCH 4
+#define OESELECT_VERSION_PATCH 5
 
 // ============================================================================
 // PredicateType enum
@@ -485,6 +485,7 @@ public:
 
     bool operator()(const OEChem::OEAtomBase& atom) const;
     const OESelection& GetSelection() const;
+    const OEChem::OEMolBase& GetMol() const;
 };
 
 // ============================================================================
@@ -555,6 +556,9 @@ public:
 // ============================================================================
 std::set<Selector> parse_selector_set(const std::string& selector_str);
 std::set<Selector> mol_to_selector_set(const OEChem::OEMolBase& mol);
+std::set<Selector> selector_set(OEChem::OEMolBase& mol, const OESelection& selection);
+std::set<Selector> selector_set(OEChem::OEMolBase& mol, const std::string& selection_str);
+std::set<Selector> selector_set(const OESelect& selector);
 std::set<std::string> str_selector_set(OEChem::OEMolBase& mol, const std::string& selection_str);
 std::string get_selector_string(const OEChem::OEAtomBase& atom);
 
@@ -679,17 +683,31 @@ def str_selector_set(mol, selection_str):
     """
     return _oeselect.str_selector_set(mol, selection_str)
 
-def selector_set(selector_str):
-    """Parse a selector string into a set of Selector objects.
+def selector_set(*args):
+    """Create a set of Selector objects.
 
-    :param selector_str: Comma/semicolon/newline-separated selector strings.
+    Accepts a selector string to parse, a molecule plus selection to evaluate,
+    or a molecule-bound OESelect object.
+
+    :param args: ``selector_str``, ``(mol, selection)``, or ``OESelect``.
     :returns: Set of Selector objects.
 
     Example::
 
         sels = selector_set("ALA:123: :A,GLY:124: :A")
+        active_site = selector_set(mol, "ligand around 5")
+        parsed = parse("ligand around 5")
+        active_site = selector_set(mol, parsed)
+        pred = OESelect(mol, "ligand around 5")
+        active_site = selector_set(pred)
     """
-    return _oeselect.parse_selector_set(selector_str)
+    if len(args) == 1 and isinstance(args[0], str):
+        return _oeselect.parse_selector_set(args[0])
+    if len(args) == 1:
+        return _oeselect.selector_set(args[0])
+    if len(args) == 2:
+        return _oeselect.selector_set(args[0], args[1])
+    raise TypeError(f"selector_set() takes 1 or 2 positional arguments but {len(args)} were given")
 
 def mol_to_selector_set(mol):
     """Extract unique Selector objects from all atoms in a molecule.
@@ -716,5 +734,5 @@ def get_selector_string(atom):
     """
     return _oeselect.get_selector_string(atom)
 
-__version__ = "1.3.4"
+__version__ = "1.3.5"
 %}

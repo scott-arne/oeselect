@@ -102,6 +102,13 @@ public:
      */
     [[nodiscard]] const OESelection& GetSelection() const;
 
+    /**
+     * @brief Access the molecule bound to this selector.
+     *
+     * @return Reference to the molecule used by this selector.
+     */
+    [[nodiscard]] const OEChem::OEMolBase& GetMol() const;
+
 private:
     struct Impl;
     std::unique_ptr<Impl> pimpl_;  ///< PIMPL for binary compatibility

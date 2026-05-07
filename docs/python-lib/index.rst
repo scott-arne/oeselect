@@ -125,11 +125,26 @@ Functions
    :returns: Set of selector strings in "NAME:NUMBER:ICODE:CHAIN" format.
 
 .. function:: selector_set(selector_str)
+              selector_set(mol, selection)
+              selector_set(selector)
 
-   Parse a selector string into a set of Selector objects.
+   Create a set of Selector objects from either selector strings or atoms
+   matching a selection.
 
    :param selector_str: Comma/semicolon/newline-separated selectors.
+   :param mol: An OpenEye OEMolBase object.
+   :param selection: PyMOL-style selection string or OESelection object.
+   :param selector: Molecule-bound OESelect object.
    :returns: Set of Selector objects.
+
+   Example::
+
+       selectors = selector_set("ALA:123: :A,GLY:124: :A")
+       active_site = selector_set(mol, "ligand around 5")
+       parsed = parse("ligand around 5")
+       active_site = selector_set(mol, parsed)
+       pred = OESelect(mol, "ligand around 5")
+       active_site = selector_set(pred)
 
 .. function:: mol_to_selector_set(mol)
 

@@ -49,4 +49,8 @@ const OESelection& OESelect::GetSelection() const {
     return pimpl_->sele;
 }
 
+const OEChem::OEMolBase& OESelect::GetMol() const {
+    return pimpl_->ctx->Mol();
+}
+
 }  // namespace OESel

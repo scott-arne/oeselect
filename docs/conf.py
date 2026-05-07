@@ -29,7 +29,7 @@ if not DOXYGEN_AVAILABLE:
 project = 'OESelect'
 copyright = '2024-2026, OESelect Contributors'
 author = 'OESelect Contributors'
-release = '1.3.4'
+release = '1.3.5'
 version = '1.3'
 
 # -- General Configuration ----------------------------------------------------

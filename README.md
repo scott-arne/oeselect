@@ -77,36 +77,55 @@ residue-level identifiers. A `Selector` identifies one residue using the format 
 Use selector helpers when you want to extract the residues matched by a normal selection, store those residue IDs, and
 later reapply them as an OpenEye atom predicate.
 
+Selector sets are returned in selector order: chain, residue number, insertion code, then residue name.
+
 ### Python
 
 ```python
 from oeselect import (
+    OESelect,
     OEResidueSelector,
     Selector,
     get_selector_string,
     mol_to_selector_set,
+    parse,
     selector_set,
-    str_selector_set,
 )
 
-# Extract residue selector strings from atoms matched by a selection.
-active_site = str_selector_set(mol, "ligand around 5")
-for selector in sorted(active_site):
-    print(selector)  # e.g. "ALA:123: :A"
+#################################################################
+# Example 1: Using an existing selection
+sele = OESelect(mol, "ligand around 5")
+selectors = selector_set(sele)
+for s in selectors:
+    print(s.ToString())
 
-# Parse selector strings into Selector objects.
+#################################################################
+# Example 2: Using a molecule and selection
+selectors = selector_set(mol, "ligand around 5")
+for s in selectors:
+    print(s.ToString())
+
+#################################################################
+# Example 3: Parse from strings
 selectors = selector_set("ALA:123: :A,GLY:124: :A")
-first = Selector.FromString("ALA:123: :A")
-print(first.name, first.residue_number, first.chain)
+for s in selectors:
+    print(s.ToString())
 
-# Match all atoms that belong to the listed residues.
-residue_pred = OEResidueSelector("ALA:123: :A,GLY:124: :A")
+# Alternative
+s = Selector.FromString("ALA:123: :A")
+print(s.name, s.residue_number, s.chain)
+
+#################################################################
+# Example 4: Use selectors as a predicate
+
+# Match all atoms that belong to the selected residues.
+residue_pred = OEResidueSelector(selectors)
 for atom in mol.GetAtoms(residue_pred):
     print(atom.GetName())
 
-# Utilities are also available for whole molecules and individual atoms.
+#################################################################
+# Example 5: Selectors from an entire molecule
 all_residues = mol_to_selector_set(mol)
-atom_selector = get_selector_string(next(iter(mol.GetAtoms())))
 ```
 
 ### C++
@@ -114,16 +133,26 @@ atom_selector = get_selector_string(next(iter(mol.GetAtoms())))
 ```cpp
 #include <oeselect/oeselect.h>
 
-// Extract selector strings for residues with atoms matching a selection.
-std::set<std::string> active_site =
-    OESel::str_selector_set(mol, "ligand around 5");
+// Extract Selector objects for residues with atoms matching a selection.
+std::set<OESel::Selector> active_site =
+    OESel::selector_set(mol, "ligand around 5");
+
+// Existing parsed selections are accepted too.
+OESel::OESelection selection = OESel::OESelection::Parse("ligand around 5");
+std::set<OESel::Selector> same_selectors =
+    OESel::selector_set(mol, selection);
+
+// Molecule-bound OESelect objects are accepted too.
+OESel::OESelect selector(mol, "ligand around 5");
+std::set<OESel::Selector> selector_residues =
+    OESel::selector_set(selector);
 
 // Parse one or more selectors. Commas, semicolons, tabs, and newlines are accepted.
 std::set<OESel::Selector> selectors =
     OESel::parse_selector_set("ALA:123: :A,GLY:124: :A");
 
 // Use selectors as an OpenEye-compatible atom predicate.
-OESel::OEResidueSelector residue_sel(selectors);
+OESel::OEResidueSelector residue_sel(active_site);
 for (auto atom = mol.GetAtoms(residue_sel); atom; ++atom) {
     std::cout << atom->GetName() << "\n";
 }

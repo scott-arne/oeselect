@@ -174,16 +174,33 @@ std::set<Selector> mol_to_selector_set(const OEChem::OEMolBase& mol) {
     return result;
 }
 
+std::set<Selector> selector_set(
+        OEChem::OEMolBase& mol, const OESelection& selection) {
+    const OESelect selector(mol, selection);
+    return selector_set(selector);
+}
+
+std::set<Selector> selector_set(const OESelect& selector) {
+    std::set<Selector> result;
+    for (OESystem::OEIter atom = selector.GetMol().GetAtoms(); atom; ++atom) {
+        if (selector(*atom)) {
+            result.insert(Selector::FromAtom(*atom));
+        }
+    }
+    return result;
+}
+
+std::set<Selector> selector_set(
+        OEChem::OEMolBase& mol, const std::string& selection_str) {
+    const OESelection selection = OESelection::Parse(selection_str);
+    return selector_set(mol, selection);
+}
+
 std::set<std::string> str_selector_set(
         OEChem::OEMolBase& mol, const std::string& selection_str) {
-    const OESelection sele = OESelection::Parse(selection_str);
-    const OESelect selector(mol, sele);
-
     std::set<std::string> result;
-    for (OESystem::OEIter atom = mol.GetAtoms(); atom; ++atom) {
-        if (selector(*atom)) {
-            result.insert(get_selector_string(*atom));
-        }
+    for (const Selector& selector : selector_set(mol, selection_str)) {
+        result.insert(selector.ToString());
     }
     return result;
 }

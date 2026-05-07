@@ -715,6 +715,55 @@ TEST_F(AtomPropertyTest, ChainPredicateNoMatch) {
     EXPECT_EQ(count, 0);
 }
 
+TEST_F(AtomPropertyTest, SelectorSetFromSelectionString) {
+    const std::set<Selector> selectors = selector_set(mol_, "all");
+
+    std::set<Selector> expected;
+    expected.insert(Selector::FromString("ALA:1: :A"));
+    expected.insert(Selector::FromString("GLY:2: :A"));
+
+    EXPECT_EQ(selectors, expected);
+
+    std::vector<std::string> ordered;
+    for (const Selector& selector : selectors) {
+        ordered.push_back(selector.ToString());
+    }
+    EXPECT_EQ(ordered, (std::vector<std::string>{"ALA:1: :A", "GLY:2: :A"}));
+}
+
+TEST_F(AtomPropertyTest, SelectorSetFromParsedSelection) {
+    const OESelection sele = OESelection::Parse("resi 2");
+    const std::set<Selector> selectors = selector_set(mol_, sele);
+
+    std::set<Selector> expected;
+    expected.insert(Selector::FromString("GLY:2: :A"));
+
+    EXPECT_EQ(selectors, expected);
+}
+
+TEST_F(AtomPropertyTest, SelectorSetFromOESelect) {
+    const OESelect selector(mol_, "resi 2");
+    const std::set<Selector> selectors = selector_set(selector);
+
+    std::set<Selector> expected;
+    expected.insert(Selector::FromString("GLY:2: :A"));
+
+    EXPECT_EQ(selectors, expected);
+}
+
+TEST_F(AtomPropertyTest, SelectorSetCanSeedResidueSelector) {
+    const std::set<Selector> selectors = selector_set(mol_, "resi 1");
+    const OEResidueSelector residue_selector(selectors);
+
+    int count = 0;
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (residue_selector(*atom)) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 5);
+}
+
 // Use the aspirin molecule for element tests (has C, O, and H atoms)
 class ElemTest : public ::testing::Test {
 protected:

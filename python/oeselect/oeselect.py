@@ -489,6 +489,9 @@ class OESelect(object):
     def GetSelection(self):
         return _oeselect.OESelect_GetSelection(self)
 
+    def GetMol(self):
+        return _oeselect.OESelect_GetMol(self)
+
     def __repr__(self):
         return f"OESelect('{self.GetSelection().ToCanonical()}')"
 
@@ -594,6 +597,9 @@ def parse_selector_set(selector_str):
 def mol_to_selector_set(mol):
     return _oeselect.mol_to_selector_set(mol)
 
+def selector_set(*args):
+    return _oeselect.selector_set(*args)
+
 def str_selector_set(mol, selection_str):
     return _oeselect.str_selector_set(mol, selection_str)
 
@@ -669,17 +675,31 @@ def str_selector_set(mol, selection_str):
     """
     return _oeselect.str_selector_set(mol, selection_str)
 
-def selector_set(selector_str):
-    """Parse a selector string into a set of Selector objects.
+def selector_set(*args):
+    """Create a set of Selector objects.
 
-    :param selector_str: Comma/semicolon/newline-separated selector strings.
+    Accepts a selector string to parse, a molecule plus selection to evaluate,
+    or a molecule-bound OESelect object.
+
+    :param args: ``selector_str``, ``(mol, selection)``, or ``OESelect``.
     :returns: Set of Selector objects.
 
     Example::
 
         sels = selector_set("ALA:123: :A,GLY:124: :A")
+        active_site = selector_set(mol, "ligand around 5")
+        parsed = parse("ligand around 5")
+        active_site = selector_set(mol, parsed)
+        pred = OESelect(mol, "ligand around 5")
+        active_site = selector_set(pred)
     """
-    return _oeselect.parse_selector_set(selector_str)
+    if len(args) == 1 and isinstance(args[0], str):
+        return _oeselect.parse_selector_set(args[0])
+    if len(args) == 1:
+        return _oeselect.selector_set(args[0])
+    if len(args) == 2:
+        return _oeselect.selector_set(args[0], args[1])
+    raise TypeError(f"selector_set() takes 1 or 2 positional arguments but {len(args)} were given")
 
 def mol_to_selector_set(mol):
     """Extract unique Selector objects from all atoms in a molecule.

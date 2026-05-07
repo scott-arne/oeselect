@@ -541,6 +541,43 @@ class TestSelectorUtilities:
         sels = selector_set("ALA:1: :A,GLY:2: :A")
         assert len(sels) == 2
 
+    def test_selector_set_from_selection_string(self, protein_mol):
+        """selector_set should extract Selector objects from a molecule selection."""
+        from oeselect import selector_set
+
+        selectors = selector_set(protein_mol, "all")
+
+        assert [selector.ToString() for selector in selectors] == [
+            "ALA:1: :A",
+            "GLY:2: :A",
+        ]
+
+    def test_selector_set_from_parsed_selection(self, protein_mol):
+        """selector_set should accept an existing OESelection object."""
+        from oeselect import parse, selector_set
+
+        selectors = selector_set(protein_mol, parse("resi 2"))
+
+        assert [selector.ToString() for selector in selectors] == ["GLY:2: :A"]
+
+    def test_selector_set_from_oeselect(self, protein_mol):
+        """selector_set should accept a molecule-bound OESelect object."""
+        from oeselect import OESelect, selector_set
+
+        pred = OESelect(protein_mol, "resi 2")
+        selectors = selector_set(pred)
+
+        assert [selector.ToString() for selector in selectors] == ["GLY:2: :A"]
+
+    def test_selector_set_can_seed_residue_selector(self, protein_mol):
+        """selector_set results should be reusable with OEResidueSelector."""
+        from oeselect import OEResidueSelector, selector_set
+
+        selectors = selector_set(protein_mol, "resi 1")
+        pred = OEResidueSelector(selectors)
+
+        assert len(list(protein_mol.GetAtoms(pred))) == 5
+
     def test_mol_to_selector_set(self, protein_mol):
         """mol_to_selector_set should extract all unique residue selectors."""
         from oeselect import mol_to_selector_set

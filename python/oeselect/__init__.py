@@ -98,8 +98,8 @@ import re
 import warnings
 
 # Version info
-__version__ = "1.3.4"
-__version_info__ = (1, 3, 4)
+__version__ = "1.3.5"
+__version_info__ = (1, 3, 5)
 
 
 def _find_openeye_runtime_lib_dir(expected_libs=()):
@@ -388,7 +388,7 @@ from .oeselect import (
     select,
     count,
     parse,
-    selector_set,
+    selector_set as _cpp_selector_set,
 )
 
 
@@ -486,6 +486,20 @@ class OESelect:
 
     def __repr__(self):
         return f"OESelect('{self._cpp_select.GetSelection().ToCanonical()}')"
+
+
+def selector_set(*args):
+    """Create a set of Selector objects.
+
+    Accepts either selector strings, a molecule plus selection, or a
+    molecule-bound OESelect object.
+
+    :param args: ``selector_str``, ``(mol, selection)``, or ``OESelect``.
+    :returns: Set of Selector objects in selector order.
+    """
+    if len(args) == 1 and isinstance(args[0], OESelect):
+        return _cpp_selector_set(args[0]._cpp_select)
+    return _cpp_selector_set(*args)
 
 
 class OEResidueSelector:

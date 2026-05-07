@@ -17,6 +17,9 @@
 
 namespace OESel {
 
+class OESelection;
+class OESelect;
+
 /**
  * @brief Identifies a unique residue position in a molecular structure.
  *
@@ -158,6 +161,43 @@ std::set<Selector> parse_selector_set(const std::string& selector_str);
  * @return Set of unique Selector objects.
  */
 std::set<Selector> mol_to_selector_set(const OEChem::OEMolBase& mol);
+
+/**
+ * @brief Extract unique Selector objects for atoms matching a parsed selection.
+ *
+ * Applies the selection to the molecule and collects unique residue
+ * selectors in "NAME:NUMBER:ICODE:CHAIN" format.
+ *
+ * @param mol The molecule to evaluate.
+ * @param selection Parsed PyMOL-style selection.
+ * @return Set of unique Selector objects.
+ */
+std::set<Selector> selector_set(
+    OEChem::OEMolBase& mol, const OESelection& selection);
+
+/**
+ * @brief Extract unique Selector objects for atoms matching a selection string.
+ *
+ * Parses and applies the selection to the molecule, then collects unique
+ * residue selectors.
+ *
+ * @param mol The molecule to evaluate.
+ * @param selection_str PyMOL-style selection string.
+ * @return Set of unique Selector objects.
+ * @throws SelectionError if the selection string cannot be parsed.
+ */
+std::set<Selector> selector_set(
+    OEChem::OEMolBase& mol, const std::string& selection_str);
+
+/**
+ * @brief Extract unique Selector objects for atoms matching an OESelect.
+ *
+ * Uses the molecule and parsed selection already bound to the selector.
+ *
+ * @param selector Molecule-bound selector to evaluate.
+ * @return Set of unique Selector objects.
+ */
+std::set<Selector> selector_set(const OESelect& selector);
 
 /**
  * @brief Extract unique selector strings for atoms matching a selection.
