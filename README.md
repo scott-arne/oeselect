@@ -68,6 +68,76 @@ unsigned int n = OEChem::OECount(mol, sel);
 `OESelection` objects are immutable and safe to share across threads. Each thread should create its own `OESelect`
 instance, which maintains a per-molecule evaluation context with lazy-initialized caches.
 
+## Residue Selectors
+
+In addition to PyMOL-style selection strings, OESelect provides residue selectors for workflows that need stable
+residue-level identifiers. A `Selector` identifies one residue using the format `NAME:NUMBER:ICODE:CHAIN`, such as
+`ALA:123: :A`. The insertion-code field is a single space for residues without an insertion code.
+
+Use selector helpers when you want to extract the residues matched by a normal selection, store those residue IDs, and
+later reapply them as an OpenEye atom predicate.
+
+### Python
+
+```python
+from oeselect import (
+    OEResidueSelector,
+    Selector,
+    get_selector_string,
+    mol_to_selector_set,
+    selector_set,
+    str_selector_set,
+)
+
+# Extract residue selector strings from atoms matched by a selection.
+active_site = str_selector_set(mol, "ligand around 5")
+for selector in sorted(active_site):
+    print(selector)  # e.g. "ALA:123: :A"
+
+# Parse selector strings into Selector objects.
+selectors = selector_set("ALA:123: :A,GLY:124: :A")
+first = Selector.FromString("ALA:123: :A")
+print(first.name, first.residue_number, first.chain)
+
+# Match all atoms that belong to the listed residues.
+residue_pred = OEResidueSelector("ALA:123: :A,GLY:124: :A")
+for atom in mol.GetAtoms(residue_pred):
+    print(atom.GetName())
+
+# Utilities are also available for whole molecules and individual atoms.
+all_residues = mol_to_selector_set(mol)
+atom_selector = get_selector_string(next(iter(mol.GetAtoms())))
+```
+
+### C++
+
+```cpp
+#include <oeselect/oeselect.h>
+
+// Extract selector strings for residues with atoms matching a selection.
+std::set<std::string> active_site =
+    OESel::str_selector_set(mol, "ligand around 5");
+
+// Parse one or more selectors. Commas, semicolons, tabs, and newlines are accepted.
+std::set<OESel::Selector> selectors =
+    OESel::parse_selector_set("ALA:123: :A,GLY:124: :A");
+
+// Use selectors as an OpenEye-compatible atom predicate.
+OESel::OEResidueSelector residue_sel(selectors);
+for (auto atom = mol.GetAtoms(residue_sel); atom; ++atom) {
+    std::cout << atom->GetName() << "\n";
+}
+
+// Convert atoms or residues back to selector strings.
+OESel::Selector selector = OESel::Selector::FromString("ALA:123: :A");
+std::string residue_id = selector.ToString();
+
+auto atom = mol.GetAtoms();
+if (atom) {
+    std::string atom_selector = OESel::get_selector_string(*atom);
+}
+```
+
 ## Selection Language Reference
 
 ### Atom Properties
