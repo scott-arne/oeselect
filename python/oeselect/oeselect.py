@@ -726,5 +726,5 @@ def get_selector_string(atom):
     """
     return _oeselect.get_selector_string(atom)
 
-__version__ = "1.3.7"
+__version__ = "1.3.8"
 

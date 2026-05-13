@@ -105,8 +105,8 @@ from importlib import metadata
 from pathlib import Path
 
 # Version info
-__version__ = "1.3.7"
-__version_info__ = (1, 3, 7)
+__version__ = "1.3.8"
+__version_info__ = (1, 3, 8)
 
 _OPENEYE_COMPAT_PRELOAD_PATHS: list[str] = []
 _OPENEYE_COMPAT_EXTENSION_DIR: Path | None = None
@@ -209,15 +209,18 @@ def _candidate_runtime_libraries(oe_lib_dir, expected_name):
         return []
     candidates = []
     for file_name in os.listdir(oe_lib_dir):
+        candidate_path = os.path.join(oe_lib_dir, file_name)
+        if not os.path.isfile(candidate_path):
+            continue
         if file_name.startswith(f"{family}-") or file_name.startswith(f"{family}."):
-            candidates.append(os.path.join(oe_lib_dir, file_name))
+            candidates.append(candidate_path)
     return sorted(candidates)
 
 
 def _compatible_library_path(oe_lib_dir, expected_name):
     """Return a runtime library path and whether it needs an expected-name alias."""
     exact_path = os.path.join(oe_lib_dir, expected_name)
-    if os.path.exists(exact_path):
+    if os.path.isfile(exact_path):
         return exact_path, False
 
     candidates = _candidate_runtime_libraries(oe_lib_dir, expected_name)

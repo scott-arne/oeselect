@@ -130,6 +130,38 @@ def test_import_uses_user_cache_for_openeye_patch_library_drift(
     assert cached_aliases[0].resolve().name == runtime_name
 
 
+def test_import_ignores_broken_openeye_runtime_compat_symlinks(
+    monkeypatch,
+    tmp_path,
+):
+    """Broken OpenEye compatibility symlinks should not make drift ambiguous."""
+    package = "oeselect"
+    source_dir = tmp_path / package
+    expected_name = "liboechem-4.3.0.1.so"
+    runtime_name = "liboechem-4.3.0.3.so"
+    _write_stub_oeselect_package(source_dir, [expected_name])
+    marker, fake_runtime = _write_fake_openeye_package(tmp_path, [runtime_name])
+    (fake_runtime / expected_name).symlink_to(fake_runtime / "missing-liboechem.so")
+    cache_home = tmp_path / "cache"
+
+    _clear_import_modules(monkeypatch, package)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(cache_home))
+    importlib.invalidate_caches()
+
+    importlib.import_module(package)
+
+    assert not marker.exists()
+    assert "openeye.libs" not in sys.modules
+    assert "openeye.oechem" not in sys.modules
+    cached_aliases = list(
+        cache_home.glob(f"oeselect/openeye-libs/**/{expected_name}")
+    )
+    assert len(cached_aliases) == 1
+    assert cached_aliases[0].is_symlink()
+    assert cached_aliases[0].resolve().name == runtime_name
+
+
 def test_import_raises_clear_error_when_compatible_openeye_library_is_missing(
     monkeypatch,
     tmp_path,
