@@ -148,3 +148,20 @@ def test_import_raises_clear_error_when_compatible_openeye_library_is_missing(
 
     with pytest.raises(ImportError, match=expected_name):
         importlib.import_module(package)
+
+
+def test_import_ignores_static_openeye_link_libraries(monkeypatch, tmp_path):
+    """Static OpenEye helper archives are not runtime libraries."""
+    package = "oeselect"
+    source_dir = tmp_path / package
+    shared_name = "liboechem-4.3.0.1.so"
+    static_name = "libzstd_static.a"
+    _write_stub_oeselect_package(source_dir, [shared_name, static_name])
+    _write_fake_openeye_package(tmp_path, [shared_name])
+
+    _clear_import_modules(monkeypatch, package)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    importlib.invalidate_caches()
+
+    importlib.import_module(package)

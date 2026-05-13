@@ -105,8 +105,8 @@ from importlib import metadata
 from pathlib import Path
 
 # Version info
-__version__ = "1.3.6"
-__version_info__ = (1, 3, 6)
+__version__ = "1.3.7"
+__version_info__ = (1, 3, 7)
 
 _OPENEYE_COMPAT_PRELOAD_PATHS: list[str] = []
 _OPENEYE_COMPAT_EXTENSION_DIR: Path | None = None
@@ -141,6 +141,17 @@ def _cache_key(oe_lib_dir, expected_libs, build_version, runtime_version):
     return hashlib.sha256(key_data.encode("utf-8")).hexdigest()[:16]
 
 
+def _runtime_shared_library_names(lib_names):
+    """Return filenames that can participate in runtime dynamic loading."""
+    return [
+        lib_name
+        for lib_name in lib_names
+        if ".so" in lib_name
+        or lib_name.endswith(".dylib")
+        or lib_name.endswith(".dll")
+    ]
+
+
 def _find_openeye_runtime_lib_dir(expected_libs=()):
     """Find the OpenEye runtime library directory without importing oechem."""
     search_locations = []
@@ -160,7 +171,7 @@ def _find_openeye_runtime_lib_dir(expected_libs=()):
         ):
             search_locations.extend(openeye_spec.submodule_search_locations)
 
-    expected_libs = set(expected_libs or ())
+    expected_libs = set(_runtime_shared_library_names(expected_libs or ()))
     fallback_dir = None
     for package_root in search_locations:
         libs_root = Path(package_root) / "libs"
@@ -269,7 +280,9 @@ def _ensure_library_compat():
     if getattr(_build_info, 'OPENEYE_LIBRARY_TYPE', 'STATIC') != 'SHARED':
         return False
 
-    expected_libs = getattr(_build_info, 'OPENEYE_EXPECTED_LIBS', [])
+    expected_libs = _runtime_shared_library_names(
+        getattr(_build_info, 'OPENEYE_EXPECTED_LIBS', [])
+    )
     if not expected_libs:
         return False
 
@@ -423,7 +436,9 @@ def _preload_shared_libs():
     if getattr(_build_info, 'OPENEYE_LIBRARY_TYPE', 'STATIC') != 'SHARED':
         return
 
-    expected_libs = getattr(_build_info, 'OPENEYE_EXPECTED_LIBS', [])
+    expected_libs = _runtime_shared_library_names(
+        getattr(_build_info, 'OPENEYE_EXPECTED_LIBS', [])
+    )
     if not expected_libs:
         return
 
