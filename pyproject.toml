@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "oeselect"
-version = "1.3.5"
+version = "1.3.6"
 description = "High-performance PyMOL selection language for OpenEye Toolkits"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -60,7 +60,7 @@ rpath-strategy = "platform"  # "platform" = @loader_path/../openeye/libs/{platfo
 # (they are provided at runtime by openeye-toolkits, not bundled in the wheel)
 expected-missing-libs = [
     "liboechem", "liboesystem", "liboeplatform",
-    "liboemath", "libzstd",
+    "liboemath", "liboebio", "liboegrid", "libzstd",
 ]
 
 # Additional CMake defines passed during wheel build (beyond the standard ones)

@@ -5,7 +5,7 @@ if(POLICY CMP0144)
     cmake_policy(SET CMP0144 NEW)
 endif()
 
-project(oeselect VERSION 1.3.5 LANGUAGES CXX)
+project(oeselect VERSION 1.3.6 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,6 +16,7 @@ option(OESELECT_BUILD_TESTS "Build tests" ON)
 option(OESELECT_BUILD_PYTHON "Build Python bindings" ON)
 option(OESELECT_UNIVERSAL2 "Build universal2 binary for macOS" OFF)
 option(OESELECT_USE_STABLE_ABI "Use Python stable ABI" ON)
+set(OPENEYE_LINK_LIB_DIR "" CACHE PATH "Optional sanitized OpenEye link-time library directory")
 
 if(APPLE AND OESELECT_UNIVERSAL2)
     set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures" FORCE)
@@ -62,6 +63,9 @@ endif()
 
 if(OPENEYE_USE_SHARED)
     find_package(OpenEyePython REQUIRED)
+    if(OPENEYE_LINK_LIB_DIR)
+        set(OPENEYE_LIB_DIR "${OPENEYE_LINK_LIB_DIR}" CACHE PATH "OpenEye link-time library directory" FORCE)
+    endif()
 endif()
 
 find_package(OpenEye REQUIRED)

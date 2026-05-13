@@ -294,6 +294,65 @@ print(f'PLATFORM:{platform_name}')
         return None
 
 
+def is_shared_library_name(file_name):
+    """Return whether a filename looks like a shared library.
+
+    :param file_name: Basename to inspect.
+    :returns: True when the name has a platform shared-library extension.
+    """
+    return (
+        file_name.endswith('.dylib')
+        or '.so' in file_name
+        or file_name.endswith('.dll')
+    )
+
+
+def prepare_openeye_link_lib_dir(openeye_lib_dir, link_lib_dir):
+    """Create a clean OpenEye library directory for CMake link discovery.
+
+    Some shared environments contain stale compatibility symlinks next to the
+    real OpenEye libraries. ``FindOpenEye.cmake`` globs versioned library names
+    and uses the first match, so those aliases can point CMake at files that no
+    longer exist. This directory exposes only valid resolved library filenames
+    for link-time discovery while leaving the real runtime directory unchanged.
+
+    :param openeye_lib_dir: Runtime library directory from ``openeye-toolkits``.
+    :param link_lib_dir: Directory to recreate with clean library symlinks.
+    :returns: Path to the sanitized link directory.
+    """
+    source_dir = Path(openeye_lib_dir)
+    target_dir = Path(link_lib_dir)
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
+    target_dir.mkdir(parents=True)
+
+    skipped = []
+    for lib_path in sorted(source_dir.iterdir()):
+        if not is_shared_library_name(lib_path.name):
+            continue
+
+        try:
+            resolved = lib_path.resolve(strict=True)
+        except FileNotFoundError:
+            skipped.append(lib_path.name)
+            continue
+
+        if not resolved.is_file() or not is_shared_library_name(resolved.name):
+            continue
+
+        clean_link = target_dir / resolved.name
+        if not clean_link.exists():
+            clean_link.symlink_to(resolved)
+
+    if skipped:
+        print_step(
+            "Skipping stale OpenEye link aliases: "
+            + ", ".join(sorted(skipped))
+        )
+
+    return target_dir
+
+
 def verify_openeye_root(openeye_root):
     """Verify OpenEye C++ SDK path has headers.
 
@@ -404,9 +463,14 @@ def build_wheel(project_dir, python_exe, openeye_root, openeye_info, config,
 
     openeye_version = openeye_info['VERSION']
     openeye_lib_dir = openeye_info['LIB_DIR']
+    openeye_link_lib_dir = prepare_openeye_link_lib_dir(
+        openeye_lib_dir,
+        Path(project_dir) / 'build' / 'openeye-link-libs' / openeye_info['PLATFORM'],
+    )
 
     print_step(f"OpenEye Toolkits version: {openeye_version}")
     print_step(f"OpenEye library directory: {openeye_lib_dir}")
+    print_step(f"OpenEye link directory: {openeye_link_lib_dir}")
     print_step(f"OpenEye C++ SDK: {openeye_root}")
 
     # Build the wheel
@@ -417,6 +481,7 @@ def build_wheel(project_dir, python_exe, openeye_root, openeye_info, config,
         '--no-deps',
         '--wheel-dir', 'dist',
         '-C', f'cmake.define.OPENEYE_ROOT={openeye_root}',
+        '-C', f'cmake.define.OPENEYE_LINK_LIB_DIR={openeye_link_lib_dir}',
         '-C', f'cmake.define.OPENEYE_RUNTIME_LIB_DIR={openeye_lib_dir}',
         '-C', f'cmake.define.OPENEYE_TOOLKITS_VERSION={openeye_version}',
         '-C', 'cmake.define.OPENEYE_USE_SHARED=ON',
