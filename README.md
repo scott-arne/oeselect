@@ -167,6 +167,48 @@ if (atom) {
 }
 ```
 
+## Atom/Bond Sets
+
+`atom_bond_set` materializes a selection into an OpenEye `OEAtomBondSet`: every
+selected atom plus every bond whose begin and end atoms are *both* selected.
+Bonds with only one selected endpoint are excluded. The set holds pointers into
+the molecule, so the molecule must outlive it.
+
+### Python
+
+```python
+from openeye import oechem
+from oeselect import OESelect, atom_bond_set, parse
+
+# From a molecule and selection string
+abset = atom_bond_set(mol, "ligand")
+print(abset.NumAtoms(), abset.NumBonds())
+
+# From a parsed selection
+abset = atom_bond_set(mol, parse("protein and chain A"))
+
+# From a molecule-bound OESelect
+pred = OESelect(mol, "ligand around 5")
+abset = atom_bond_set(pred)
+```
+
+### C++
+
+```cpp
+#include <oeselect/oeselect.h>
+
+// From a molecule and selection string
+OEChem::OEAtomBondSet abset = OESel::atom_bond_set(mol, "ligand");
+
+// From a parsed selection
+OESel::OESelection sele = OESel::OESelection::Parse("protein and chain A");
+OEChem::OEAtomBondSet abset2 = OESel::atom_bond_set(mol, sele);
+
+// From a molecule-bound OESelect
+OESel::OESelect selector(mol, "ligand around 5");
+OEChem::OEAtomBondSet abset3 = OESel::atom_bond_set(selector);
+```
+
 ## Selection Language Reference
 
 ### Atom Properties
