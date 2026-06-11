@@ -661,6 +661,27 @@ class TestAtomBondSet:
         assert abset.NumAtoms() == 3
         assert abset.NumBonds() == 2
 
+    def test_atom_bond_set_residue_excludes_inter_residue_bond(self, protein_mol):
+        """A single-residue selection excludes the bond crossing to the next
+        residue, but selecting both residues includes it (the both-endpoints
+        rule on real chemistry)."""
+        from oeselect import atom_bond_set
+
+        res1 = atom_bond_set(protein_mol, "resi 1")
+        assert res1.NumAtoms() == 5
+        assert res1.NumBonds() == 4
+
+        res2 = atom_bond_set(protein_mol, "resi 2")
+        assert res2.NumAtoms() == 5
+        assert res2.NumBonds() == 4
+
+        # 4 + 4 = 8 internal bonds, but the union has 9: the inter-residue
+        # amide bond is dangling for each residue alone and only included when
+        # both endpoints are selected.
+        both = atom_bond_set(protein_mol, "resi 1 or resi 2")
+        assert both.NumAtoms() == 10
+        assert both.NumBonds() == 9
+
 
 class TestPredicateType:
     """Tests for PredicateType enum."""
