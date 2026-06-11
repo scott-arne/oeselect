@@ -938,6 +938,7 @@ __all__ = [
     "parse_selector_set",
     "str_selector_set",
     "selector_set",
+    "atom_bond_set",
     "mol_to_selector_set",
     "get_selector_string",
 ]
