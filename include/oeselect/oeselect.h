@@ -50,5 +50,6 @@ class Tagger;
 #include "oeselect/Tagger.h"
 #include "oeselect/ResidueSelector.h"
 #include "oeselect/CustomPredicates.h"
+#include "oeselect/AtomBondSet.h"
 
 #endif  // OESELECT_OESELECT_H

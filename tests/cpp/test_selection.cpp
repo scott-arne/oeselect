@@ -3117,3 +3117,65 @@ TEST(TaggerTest, MethionineStillClassifiedAsProtein) {
         EXPECT_TRUE(Tagger::HasComponent(*atom, ComponentFlag::PROTEIN));
     }
 }
+
+// ============================================================================
+// atom_bond_set tests
+// ============================================================================
+class AtomBondSetTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Propane: atoms idx 0,1,2; bonds 0-1 and 1-2.
+        OEChem::OESmilesToMol(mol_, "CCC");
+    }
+
+    OEChem::OEGraphMol mol_;
+};
+
+TEST_F(AtomBondSetTest, AllIncludesEveryAtomAndBond) {
+    const OEChem::OEAtomBondSet abset = atom_bond_set(mol_, "all");
+    EXPECT_EQ(abset.NumAtoms(), mol_.NumAtoms());
+    EXPECT_EQ(abset.NumBonds(), mol_.NumBonds());
+    EXPECT_EQ(abset.NumAtoms(), 3u);
+    EXPECT_EQ(abset.NumBonds(), 2u);
+}
+
+TEST_F(AtomBondSetTest, NoneIsEmpty) {
+    const OEChem::OEAtomBondSet abset = atom_bond_set(mol_, "none");
+    EXPECT_TRUE(abset.IsEmpty());
+    EXPECT_EQ(abset.NumAtoms(), 0u);
+    EXPECT_EQ(abset.NumBonds(), 0u);
+}
+
+TEST_F(AtomBondSetTest, BothEndpointsSelectedYieldsBond) {
+    const OEChem::OEAtomBondSet abset = atom_bond_set(mol_, "index 0-1");
+    EXPECT_EQ(abset.NumAtoms(), 2u);
+    EXPECT_EQ(abset.NumBonds(), 1u);
+}
+
+TEST_F(AtomBondSetTest, DanglingBondIsExcluded) {
+    // Only atom 0 selected: bond 0-1 has one unselected endpoint, so excluded.
+    const OEChem::OEAtomBondSet abset = atom_bond_set(mol_, "index 0");
+    EXPECT_EQ(abset.NumAtoms(), 1u);
+    EXPECT_EQ(abset.NumBonds(), 0u);
+}
+
+TEST_F(AtomBondSetTest, MiddleAtomAloneHasNoBonds) {
+    // Atom 1 selected alone: both of its bonds have an unselected endpoint.
+    const OEChem::OEAtomBondSet abset = atom_bond_set(mol_, "index 1");
+    EXPECT_EQ(abset.NumAtoms(), 1u);
+    EXPECT_EQ(abset.NumBonds(), 0u);
+}
+
+TEST_F(AtomBondSetTest, AcceptsParsedSelection) {
+    const OESelection sele = OESelection::Parse("index 0-1");
+    const OEChem::OEAtomBondSet abset = atom_bond_set(mol_, sele);
+    EXPECT_EQ(abset.NumAtoms(), 2u);
+    EXPECT_EQ(abset.NumBonds(), 1u);
+}
+
+TEST_F(AtomBondSetTest, AcceptsBoundSelector) {
+    const OESelect selector(mol_, "index 0-2");
+    const OEChem::OEAtomBondSet abset = atom_bond_set(selector);
+    EXPECT_EQ(abset.NumAtoms(), 3u);
+    EXPECT_EQ(abset.NumBonds(), 2u);
+}
