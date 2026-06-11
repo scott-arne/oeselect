@@ -34,6 +34,8 @@ OEChem::OEAtomBondSet atom_bond_set(const OESelect& selector) {
     for (OESystem::OEIter<OEChem::OEBondBase> bond = mol.GetBonds(); bond; ++bond) {
         const unsigned int bgn = bond->GetBgn()->GetIdx();
         const unsigned int end = bond->GetEnd()->GetIdx();
+        // Bounds check is defensive: indices from this molecule are always in
+        // range; the guard protects against malformed graphs.
         if (bgn < selected.size() && end < selected.size() &&
             selected[bgn] && selected[end]) {
             result.AddBond(&*bond);

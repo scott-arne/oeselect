@@ -3179,3 +3179,43 @@ TEST_F(AtomBondSetTest, AcceptsBoundSelector) {
     EXPECT_EQ(abset.NumAtoms(), 3u);
     EXPECT_EQ(abset.NumBonds(), 2u);
 }
+
+TEST_F(AtomBondSetTest, HandlesDeletedAtomIndexGap) {
+    // Delete the middle atom (idx 1) so the remaining atoms (idx 0 and 2)
+    // leave a gap in the index space. The mask must be sized by
+    // GetMaxAtomIdx(), not NumAtoms(), to index atom 2 safely.
+    for (OESystem::OEIter<OEChem::OEAtomBase> atom = mol_.GetAtoms(); atom; ++atom) {
+        if (atom->GetIdx() == 1u) {
+            mol_.DeleteAtom(&*atom);
+            break;
+        }
+    }
+
+    // Verify that deletion leaves an index gap: NumAtoms < GetMaxAtomIdx.
+    // If this fails, OpenEye renumbers atoms and this test cannot distinguish
+    // GetMaxAtomIdx() from NumAtoms().
+    EXPECT_LT(mol_.NumAtoms(), mol_.GetMaxAtomIdx())
+        << "Expected index gap after atom deletion, but got NumAtoms="
+        << mol_.NumAtoms() << " and GetMaxAtomIdx=" << mol_.GetMaxAtomIdx();
+
+    // Test "all" selection - should work correctly with either approach due to
+    // the defensive bonds check, but the mask sizing must accommodate atom idx 2.
+    const OEChem::OEAtomBondSet abset = atom_bond_set(mol_, "all");
+    EXPECT_EQ(abset.NumAtoms(), 2u);
+    EXPECT_EQ(abset.NumBonds(), 0u);
+
+    // This is the critical test: select by index 2, which exists but is beyond
+    // NumAtoms()==2. With NumAtoms() sizing, selected[2] is out of bounds and
+    // would cause undefined behavior (crash, wrong result, or silent failure).
+    // The defensive check in pass 2 won't help here because pass 1 tries to
+    // write to selected[atom->GetIdx()], which is selected[2].
+    //
+    // Note: If this assertion fails (abset2.NumAtoms() == 0 instead of 1), that
+    // proves the mask was too small and atom 2 was not selected correctly.
+    const OEChem::OEAtomBondSet abset2 = atom_bond_set(mol_, "index 2");
+    EXPECT_EQ(abset2.NumAtoms(), 1u)
+        << "Failed to select atom 2: NumAtoms=" << mol_.NumAtoms()
+        << ", GetMaxAtomIdx=" << mol_.GetMaxAtomIdx()
+        << ", selected atoms=" << abset2.NumAtoms();
+    EXPECT_EQ(abset2.NumBonds(), 0u);
+}
