@@ -581,6 +581,7 @@ from .oeselect import (
     count,
     parse,
     selector_set as _cpp_selector_set,
+    atom_bond_set as _cpp_atom_bond_set,
 )
 
 
@@ -692,6 +693,31 @@ def selector_set(*args):
     if len(args) == 1 and isinstance(args[0], OESelect):
         return _cpp_selector_set(args[0]._cpp_select)
     return _cpp_selector_set(*args)
+
+
+def atom_bond_set(*args):
+    """Build a native OEAtomBondSet from a selection.
+
+    The result contains every selected atom plus every bond whose begin and end
+    atoms are both selected. Bonds with only one selected endpoint are excluded.
+
+    Accepts a molecule-bound ``OESelect``, ``(mol, OESelection)``, or
+    ``(mol, selection_str)``.
+
+    :param args: ``OESelect``, ``(mol, selection)``, or ``(mol, selection_str)``.
+    :returns: An ``openeye.oechem.OEAtomBondSet``. The molecule must outlive it.
+
+    Example::
+
+        from openeye import oechem
+        from oeselect import atom_bond_set
+
+        abset = atom_bond_set(mol, "ligand")
+        print(abset.NumAtoms(), abset.NumBonds())
+    """
+    if len(args) == 1 and isinstance(args[0], OESelect):
+        return _cpp_atom_bond_set(args[0]._cpp_select)
+    return _cpp_atom_bond_set(*args)
 
 
 class OEResidueSelector:

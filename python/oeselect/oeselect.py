@@ -612,6 +612,15 @@ def EvaluateSelection(mol, selection_str):
 def CountSelection(mol, selection_str):
     return _oeselect.CountSelection(mol, selection_str)
 
+def AtomBondSetFromString(mol, selection_str):
+    return _oeselect.AtomBondSetFromString(mol, selection_str)
+
+def AtomBondSetFromSelection(mol, selection):
+    return _oeselect.AtomBondSetFromSelection(mol, selection)
+
+def AtomBondSetFromSelect(selector):
+    return _oeselect.AtomBondSetFromSelect(selector)
+
 def select(mol, selection_str):
     """Evaluate a selection string on an OpenEye molecule.
 
@@ -701,6 +710,24 @@ def selector_set(*args):
         return _oeselect.selector_set(args[0], args[1])
     raise TypeError(f"selector_set() takes 1 or 2 positional arguments but {len(args)} were given")
 
+def atom_bond_set(*args):
+    """Build a native OEAtomBondSet from a selection (low-level SWIG layer).
+
+    Accepts a raw OESelect, ``(mol, OESelection)``, or ``(mol, selection_str)``.
+    The public ``oeselect.atom_bond_set`` wrapper unwraps the high-level
+    OESelect before calling this.
+    """
+    if len(args) == 1:
+        return _oeselect.AtomBondSetFromSelect(args[0])
+    if len(args) == 2:
+        mol, sele = args
+        if isinstance(sele, OESelection):
+            return _oeselect.AtomBondSetFromSelection(mol, sele)
+        return _oeselect.AtomBondSetFromString(mol, str(sele))
+    raise TypeError(
+        f"atom_bond_set() takes 1 or 2 positional arguments but {len(args)} were given"
+    )
+
 def mol_to_selector_set(mol):
     """Extract unique Selector objects from all atoms in a molecule.
 
@@ -727,4 +754,5 @@ def get_selector_string(atom):
     return _oeselect.get_selector_string(atom)
 
 __version__ = "1.3.8"
+
 

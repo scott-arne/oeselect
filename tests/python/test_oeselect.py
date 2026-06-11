@@ -596,6 +596,72 @@ class TestSelectorUtilities:
         assert "A" in sel_str
 
 
+class TestAtomBondSet:
+    """Tests for atom_bond_set."""
+
+    @staticmethod
+    def _propane():
+        from openeye import oechem
+
+        mol = oechem.OEGraphMol()
+        oechem.OESmilesToMol(mol, "CCC")  # atoms 0,1,2; bonds 0-1, 1-2
+        return mol
+
+    def test_atom_bond_set_all(self):
+        """'all' includes every atom and bond, as a native OEAtomBondSet."""
+        from openeye import oechem
+        from oeselect import atom_bond_set
+
+        mol = self._propane()
+        abset = atom_bond_set(mol, "all")
+        assert isinstance(abset, oechem.OEAtomBondSet)
+        assert abset.NumAtoms() == 3
+        assert abset.NumBonds() == 2
+
+    def test_atom_bond_set_none_is_empty(self):
+        """'none' yields an empty set."""
+        from oeselect import atom_bond_set
+
+        abset = atom_bond_set(self._propane(), "none")
+        assert abset.IsEmpty()
+        assert abset.NumAtoms() == 0
+        assert abset.NumBonds() == 0
+
+    def test_atom_bond_set_internal_bond(self):
+        """Both endpoints selected -> the connecting bond is included."""
+        from oeselect import atom_bond_set
+
+        abset = atom_bond_set(self._propane(), "index 0-1")
+        assert abset.NumAtoms() == 2
+        assert abset.NumBonds() == 1
+
+    def test_atom_bond_set_excludes_dangling_bond(self):
+        """One endpoint selected -> the dangling bond is excluded."""
+        from oeselect import atom_bond_set
+
+        abset = atom_bond_set(self._propane(), "index 0")
+        assert abset.NumAtoms() == 1
+        assert abset.NumBonds() == 0
+
+    def test_atom_bond_set_from_parsed_selection(self):
+        """atom_bond_set accepts (mol, OESelection)."""
+        from oeselect import atom_bond_set, parse
+
+        abset = atom_bond_set(self._propane(), parse("index 0-1"))
+        assert abset.NumAtoms() == 2
+        assert abset.NumBonds() == 1
+
+    def test_atom_bond_set_from_oeselect(self):
+        """atom_bond_set accepts a molecule-bound OESelect."""
+        from oeselect import OESelect, atom_bond_set
+
+        mol = self._propane()
+        pred = OESelect(mol, "index 0-2")
+        abset = atom_bond_set(pred)
+        assert abset.NumAtoms() == 3
+        assert abset.NumBonds() == 2
+
+
 class TestPredicateType:
     """Tests for PredicateType enum."""
 
