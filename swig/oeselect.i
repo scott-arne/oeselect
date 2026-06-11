@@ -12,6 +12,7 @@
 #include "oeselect/Error.h"
 #include "oeselect/ResidueSelector.h"
 #include "oeselect/CustomPredicates.h"
+#include "oeselect/AtomBondSet.h"
 
 #include <oechem.h>
 #include <oegrid.h>
@@ -33,6 +34,7 @@ namespace OEChem {
     class OEGraphMol;
     class OEAtomBase;
     class OEBondBase;
+    class OEAtomBondSet;
     class OEConfBase;
     class OEMatchBase;
     class OEMolDatabase;
@@ -205,6 +207,42 @@ static PyObject* _oeselect_wrap_as_oe_grid(OESystem::OEScalarGrid* grid) {
     return oe_grid;
 }
 
+// ---- OEAtomBondSet return-type helper (zero-copy pointer swap) ----
+static PyObject* _oeselect_wrap_as_oe_atombondset(OEChem::OEAtomBondSet* abset) {
+    if (!abset) {
+        Py_RETURN_NONE;
+    }
+    PyObject* oechem_mod = PyImport_ImportModule("openeye.oechem");
+    if (!oechem_mod) {
+        delete abset;
+        return NULL;
+    }
+    PyObject* abset_cls = PyObject_GetAttrString(oechem_mod, "OEAtomBondSet");
+    Py_DECREF(oechem_mod);
+    if (!abset_cls) {
+        delete abset;
+        return NULL;
+    }
+    PyObject* oe_abset = PyObject_CallNoArgs(abset_cls);
+    Py_DECREF(abset_cls);
+    if (!oe_abset) {
+        delete abset;
+        return NULL;
+    }
+    PyObject* thisAttr = PyObject_GetAttrString(oe_abset, "this");
+    if (!thisAttr) {
+        PyErr_Clear();
+        Py_DECREF(oe_abset);
+        delete abset;
+        return NULL;
+    }
+    _SwigPyObjectCompat* swig_this = (_SwigPyObjectCompat*)thisAttr;
+    delete reinterpret_cast<OEChem::OEAtomBondSet*>(swig_this->ptr);
+    swig_this->ptr = abset;
+    Py_DECREF(thisAttr);
+    return oe_abset;
+}
+
 // Helper function to evaluate selection and return matching atom indices
 std::vector<unsigned int> EvaluateSelection(
     OEChem::OEMolBase& mol,
@@ -237,6 +275,27 @@ unsigned int CountSelection(
         }
     }
     return count;
+}
+
+// Helpers returning a heap OEAtomBondSet (wrapped to native by the out-typemap)
+OEChem::OEAtomBondSet* AtomBondSetFromString(
+    OEChem::OEMolBase& mol,
+    const std::string& selection_str
+) {
+    return new OEChem::OEAtomBondSet(OESel::atom_bond_set(mol, selection_str));
+}
+
+OEChem::OEAtomBondSet* AtomBondSetFromSelection(
+    OEChem::OEMolBase& mol,
+    const OESel::OESelection& selection
+) {
+    return new OEChem::OEAtomBondSet(OESel::atom_bond_set(mol, selection));
+}
+
+OEChem::OEAtomBondSet* AtomBondSetFromSelect(
+    const OESel::OESelect& selector
+) {
+    return new OEChem::OEAtomBondSet(OESel::atom_bond_set(selector));
 }
 %}
 
@@ -386,6 +445,12 @@ OE_CROSS_RUNTIME_NULLABLE_PTR_TYPEMAPS(OESystem::OEScalarGrid, _oeselect_is_oesc
 // OEScalarGrid return-type typemap (wraps C++ grid as native openeye.oegrid object)
 %typemap(out) OESystem::OEScalarGrid* {
     $result = _oeselect_wrap_as_oe_grid($1);
+    if (!$result) SWIG_fail;
+}
+
+// OEAtomBondSet return-type typemap (wraps C++ set as native openeye object)
+%typemap(out) OEChem::OEAtomBondSet* {
+    $result = _oeselect_wrap_as_oe_atombondset($1);
     if (!$result) SWIG_fail;
 }
 
@@ -577,6 +642,20 @@ unsigned int CountSelection(
     const std::string& selection_str
 );
 
+OEChem::OEAtomBondSet* AtomBondSetFromString(
+    OEChem::OEMolBase& mol,
+    const std::string& selection_str
+);
+
+OEChem::OEAtomBondSet* AtomBondSetFromSelection(
+    OEChem::OEMolBase& mol,
+    const OESel::OESelection& selection
+);
+
+OEChem::OEAtomBondSet* AtomBondSetFromSelect(
+    const OESel::OESelect& selector
+);
+
 // ============================================================================
 // Python extensions for OESelection
 // ============================================================================
@@ -708,6 +787,24 @@ def selector_set(*args):
     if len(args) == 2:
         return _oeselect.selector_set(args[0], args[1])
     raise TypeError(f"selector_set() takes 1 or 2 positional arguments but {len(args)} were given")
+
+def atom_bond_set(*args):
+    """Build a native OEAtomBondSet from a selection (low-level SWIG layer).
+
+    Accepts a raw OESelect, ``(mol, OESelection)``, or ``(mol, selection_str)``.
+    The public ``oeselect.atom_bond_set`` wrapper unwraps the high-level
+    OESelect before calling this.
+    """
+    if len(args) == 1:
+        return _oeselect.AtomBondSetFromSelect(args[0])
+    if len(args) == 2:
+        mol, sele = args
+        if isinstance(sele, OESelection):
+            return _oeselect.AtomBondSetFromSelection(mol, sele)
+        return _oeselect.AtomBondSetFromString(mol, str(sele))
+    raise TypeError(
+        f"atom_bond_set() takes 1 or 2 positional arguments but {len(args)} were given"
+    )
 
 def mol_to_selector_set(mol):
     """Extract unique Selector objects from all atoms in a molecule.
