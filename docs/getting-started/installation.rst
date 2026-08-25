@@ -9,7 +9,7 @@ Prerequisites
 - **C++ Compiler**: GCC 9+, Clang 10+, or MSVC 2019+
 - **CMake**: 3.16 or later
 - **OpenEye Toolkit**: Licensed OpenEye OEChem library (C++ SDK for building, Python package for runtime)
-- **Python**: 3.10 or later (for Python packages)
+- **Python**: 3.11 or later (for Python packages)
 - **SWIG**: 4.0 or later (for building Python bindings)
 
 Python Package

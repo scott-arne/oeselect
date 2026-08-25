@@ -45,7 +45,10 @@ The pipeline builds wheels for the following targets:
      - ``macosx_11_0_universal2``
 
 All wheels are built with the Python stable ABI (abi3) targeting Python 3.10+, so a
-single wheel per platform works across Python 3.10, 3.11, 3.12, and 3.13.
+single wheel per platform works across every later minor. Installs are gated at
+Python 3.11 by ``requires-python`` because ``openeye-toolkits`` 2026.1 ships no
+py310 wheel, so the supported range in practice is 3.11 through 3.14. The
+``abi3-smoke`` job imports the built wheels at both ends of that range.
 
 .. note::
 
@@ -123,9 +126,15 @@ name is configured via the ``GCS_BUCKET`` environment variable in the workflow (
 Expected SDK tarballs::
 
     gs://openeye-sdks/
-    ├── OpenEye-toolkits-2025.2.1-redhat-RHEL8-g++8.5-x64.tar.gz
-    ├── OpenEye-toolkits-2025.2.1-Ubuntu-22.04-g++11.11-aarch64.tar.gz
-    └── OpenEye-toolkits-2025.2.1-macOS-14.8-clang++16-universal.tar.gz
+    ├── OpenEye-toolkits-2026.1.0-redhat-RHEL8-g++8.5-x64.tar.gz
+    ├── OpenEye-toolkits-2026.1.0-Ubuntu-22.04-g++11.11-aarch64.tar.gz
+    ├── OpenEye-toolkits-2026.1.0-macOS-14-clang++16-universal.tar.gz
+    ├── OpenEye-toolkits-2026.1.0-win-x64-MD.zip
+    └── oe_license.txt
+
+The bucket is rolling rather than archival: older releases are removed when a new
+one lands, so the release pinned by ``OPENEYE_VERSION`` in the workflow has to be
+the one currently present or every download 404s.
 
 Authentication uses GCP Workload Identity Federation, which allows GitHub Actions to
 obtain short-lived access tokens without storing long-lived credentials.
