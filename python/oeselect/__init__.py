@@ -105,8 +105,8 @@ from importlib import metadata
 from pathlib import Path
 
 # Version info
-__version__ = "1.4.0"
-__version_info__ = (1, 4, 0)
+__version__ = "1.4.1"
+__version_info__ = (1, 4, 1)
 
 _OPENEYE_COMPAT_PRELOAD_PATHS: list[str] = []
 _OPENEYE_COMPAT_EXTENSION_DIR: Path | None = None

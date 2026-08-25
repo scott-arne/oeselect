@@ -493,7 +493,7 @@ OE_CROSS_RUNTIME_REF_TYPEMAPS(OEDocking::OEReceptor, _oeselect_is_oereceptor, "E
 // ============================================================================
 #define OESELECT_VERSION_MAJOR 1
 #define OESELECT_VERSION_MINOR 4
-#define OESELECT_VERSION_PATCH 0
+#define OESELECT_VERSION_PATCH 1
 
 // ============================================================================
 // PredicateType enum
@@ -831,5 +831,5 @@ def get_selector_string(atom):
     """
     return _oeselect.get_selector_string(atom)
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 %}
