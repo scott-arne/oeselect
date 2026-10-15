@@ -318,7 +318,7 @@ Requirements:
 - CMake 3.26 or newer and a C++17 compiler
 - The OpenEye C++ Toolkits
 - SWIG 4.4.1 or newer. CI builds with SWIG 4.5.1 (`pip install swig==4.5.1`). SWIG 4.4.0, which Ubuntu 26.04 ships as `/usr/bin/swig`, generates stable-ABI wrappers that do not compile against Python 3.13 or newer.
-- `patchelf` on Linux, so editable builds can add the OpenEye (and, where used, pyarrow) library directories to the extension's RPATH; without it the editable import fails with `cannot open shared object file`.
+- `patchelf` on Linux, so editable builds can add the OpenEye library directories to the extension's RPATH; without it the editable import fails with `cannot open shared object file`.
 
 ```bash
 cmake --preset debug
