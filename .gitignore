@@ -296,3 +296,6 @@ python/oeselect/_build_info.py
 # the same SWIG version as the compiled extension, so tracking it only
 # produces churn.
 python/oeselect/oeselect.py
+
+# User CMake presets (may contain local paths)
+CMakeUserPresets.json
