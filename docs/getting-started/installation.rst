@@ -7,10 +7,12 @@ Prerequisites
 -------------
 
 - **C++ Compiler**: GCC 9+, Clang 10+, or MSVC 2019+
-- **CMake**: 3.16 or later
+- **CMake**: 3.26 or later
 - **OpenEye Toolkit**: Licensed OpenEye OEChem library (C++ SDK for building, Python package for runtime)
 - **Python**: 3.11 or later (for Python packages)
-- **SWIG**: 4.0 or later (for building Python bindings)
+- **SWIG**: 4.4.1 or later (for building Python bindings). CI builds with SWIG 4.5.1
+  (``pip install swig==4.5.1``); SWIG 4.4.0, which Ubuntu 26.04 ships, generates
+  stable-ABI wrappers that do not compile against Python 3.13 or newer.
 
 Python Package
 --------------------

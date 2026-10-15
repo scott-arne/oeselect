@@ -11,10 +11,6 @@ file = "python/oeselect/__init__.py"
 type = "python-dunder"
 
 [[locations]]
-file = "python/oeselect/oeselect.py"
-type = "python-dunder"
-
-[[locations]]
 file = "python/oeselect/__init__.py"
 type = "python-version-info"
 
